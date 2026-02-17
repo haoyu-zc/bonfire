@@ -17,10 +17,10 @@ check_service_active() {
     local service="$2"
     if sudo systemctl is-active "$service" &>/dev/null; then
         log_success "PASS: $name is running (systemctl: $service)"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_error "FAIL: $name is not running (systemctl: $service)"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -29,10 +29,10 @@ check_service_enabled() {
     local service="$2"
     if sudo systemctl is-enabled "$service" &>/dev/null; then
         log_success "PASS: $name is enabled at boot"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_warn "WARN: $name is not enabled at boot"
-        ((WARN++))
+        WARN=$((WARN + 1))
     fi
 }
 
@@ -42,10 +42,10 @@ check_port_listening() {
     if ss -tlnp 2>/dev/null | grep -q ":${port} " || \
        netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
         log_success "PASS: $name is listening on port $port"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_warn "WARN: $name does not appear to be listening on port $port"
-        ((WARN++))
+        WARN=$((WARN + 1))
     fi
 }
 
@@ -62,36 +62,36 @@ if [[ "$OS" == "linux" ]]; then
     # Verify SSH config
     if [[ -f /etc/ssh/sshd_config.d/99-custom.conf ]]; then
         log_success "PASS: SSH drop-in config exists"
-        ((PASS++))
+        PASS=$((PASS + 1))
 
         # Validate config
         if sudo sshd -t &>/dev/null; then
             log_success "PASS: SSH config is valid"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_error "FAIL: SSH config validation failed"
-            ((FAIL++))
+            FAIL=$((FAIL + 1))
         fi
 
         # Check key settings
         if grep -q "PasswordAuthentication no" /etc/ssh/sshd_config.d/99-custom.conf; then
             log_success "PASS: PasswordAuthentication disabled"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_warn "WARN: PasswordAuthentication may not be disabled"
-            ((WARN++))
+            WARN=$((WARN + 1))
         fi
 
         if grep -q "PermitRootLogin no" /etc/ssh/sshd_config.d/99-custom.conf; then
             log_success "PASS: PermitRootLogin disabled"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_warn "WARN: PermitRootLogin may not be disabled"
-            ((WARN++))
+            WARN=$((WARN + 1))
         fi
     else
         log_warn "WARN: SSH drop-in config not found at /etc/ssh/sshd_config.d/99-custom.conf"
-        ((WARN++))
+        WARN=$((WARN + 1))
     fi
 
     # ~/.ssh permissions
@@ -100,10 +100,10 @@ if [[ "$OS" == "linux" ]]; then
         ssh_perms="$(stat -c "%a" "$HOME/.ssh")"
         if [[ "$ssh_perms" == "700" ]]; then
             log_success "PASS: ~/.ssh permissions are 700"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_error "FAIL: ~/.ssh permissions are $ssh_perms (expected 700)"
-            ((FAIL++))
+            FAIL=$((FAIL + 1))
         fi
     fi
 
@@ -111,47 +111,39 @@ if [[ "$OS" == "linux" ]]; then
         ak_perms="$(stat -c "%a" "$HOME/.ssh/authorized_keys")"
         if [[ "$ak_perms" == "600" ]]; then
             log_success "PASS: ~/.ssh/authorized_keys permissions are 600"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_error "FAIL: ~/.ssh/authorized_keys permissions are $ak_perms (expected 600)"
-            ((FAIL++))
+            FAIL=$((FAIL + 1))
         fi
 
         # Check if any keys are configured
         key_count="$(grep -c "ssh-" "$HOME/.ssh/authorized_keys" 2>/dev/null || echo 0)"
         if [[ "$key_count" -gt 0 ]]; then
             log_success "PASS: $key_count public key(s) in authorized_keys"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_warn "WARN: No public keys in ~/.ssh/authorized_keys — add your key before logging out"
-            ((WARN++))
+            WARN=$((WARN + 1))
         fi
     fi
 
-    # Docker
-    log_info "Checking Docker..."
-    if command_exists docker; then
-        check_service_active "Docker daemon" "docker"
+    # Podman (rootless — no daemon or group to check)
+    log_info "Checking Podman..."
+    if command_exists podman; then
+        log_success "PASS: podman available"
+        PASS=$((PASS + 1))
 
-        if groups "$USER" | grep -q docker; then
-            log_success "PASS: user '$USER' is in docker group"
-            ((PASS++))
+        if podman info &>/dev/null 2>&1; then
+            log_success "PASS: podman info succeeds (rootless)"
+            PASS=$((PASS + 1))
         else
-            log_warn "WARN: user '$USER' is NOT in docker group (run: sudo usermod -aG docker $USER)"
-            ((WARN++))
-        fi
-
-        # Test docker works (as non-root if in group)
-        if docker info &>/dev/null 2>&1; then
-            log_success "PASS: docker info succeeds (no sudo needed)"
-            ((PASS++))
-        else
-            log_warn "WARN: docker info requires sudo or daemon is not running"
-            ((WARN++))
+            log_warn "WARN: podman info failed"
+            WARN=$((WARN + 1))
         fi
     else
-        log_warn "WARN: docker not installed"
-        ((WARN++))
+        log_warn "WARN: podman not installed"
+        WARN=$((WARN + 1))
     fi
 
 elif [[ "$OS" == "darwin" ]]; then
@@ -161,17 +153,17 @@ elif [[ "$OS" == "darwin" ]]; then
     LAUNCH_AGENT="$HOME/Library/LaunchAgents/com.local.KeyRemapping.plist"
     if [[ -f "$LAUNCH_AGENT" ]]; then
         log_success "PASS: Key remapping LaunchAgent installed"
-        ((PASS++))
+        PASS=$((PASS + 1))
         if launchctl list 2>/dev/null | grep -q "com.local.KeyRemapping"; then
             log_success "PASS: Key remapping LaunchAgent is loaded"
-            ((PASS++))
+            PASS=$((PASS + 1))
         else
             log_warn "WARN: Key remapping LaunchAgent not loaded (run: launchctl load $LAUNCH_AGENT)"
-            ((WARN++))
+            WARN=$((WARN + 1))
         fi
     else
         log_warn "WARN: Key remapping LaunchAgent not found"
-        ((WARN++))
+        WARN=$((WARN + 1))
     fi
 fi
 
