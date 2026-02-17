@@ -47,3 +47,26 @@ mise reshim
 
 log_success "mise tools installed"
 log_info "Run 'mise ls' to see installed tools"
+
+# =============================================================================
+# Install tealdeer (tldr) — Linux only
+# The apt-packaged version (1.6.1) has a hardcoded broken cache URL.
+# Download the latest binary directly from GitHub releases instead.
+# On macOS, tealdeer is installed via brew (see packages.toml).
+# =============================================================================
+if [[ "$OS" == "linux" ]]; then
+    TLDR_BIN="$HOME/.local/bin/tldr"
+    LATEST_TLDR="https://github.com/dbrgn/tealdeer/releases/latest/download/tealdeer-linux-x86_64-musl"
+
+    if command_exists tldr && tldr --version 2>/dev/null | grep -qv "1\.6\."; then
+        log_success "tealdeer already installed: $(tldr --version)"
+    else
+        log_info "Installing tealdeer (latest binary from GitHub releases)..."
+        curl -fsSL "$LATEST_TLDR" -o "$TLDR_BIN"
+        chmod +x "$TLDR_BIN"
+        log_success "tealdeer installed: $("$TLDR_BIN" --version)"
+
+        log_info "Updating tldr cache..."
+        "$TLDR_BIN" --update 2>/dev/null && log_success "tldr cache updated" || log_warn "tldr cache update failed — run 'tldr --update' manually"
+    fi
+fi
