@@ -154,9 +154,27 @@ Edit `dotfiles/mise/.config/mise/config.toml` to add dev tools:
    git config --global user.name "Your Name"
    git config --global user.email "you@example.com"
    ```
-3. **Add your SSH public key** (Linux):
+3. **Connect via SSH from another machine** (Linux):
+
+   Password auth is disabled by default. To copy your key over:
    ```bash
-   cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+   # On this PC — temporarily allow password auth
+   sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' \
+       /etc/ssh/sshd_config.d/99-custom.conf
+   sudo systemctl reload ssh
+
+   # On the other machine — copy your public key
+   ssh-copy-id <your-username>@<this-pc-ip>
+
+   # On this PC — disable password auth again
+   sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' \
+       /etc/ssh/sshd_config.d/99-custom.conf
+   sudo systemctl reload ssh
+   ```
+
+   Or add the key manually on this PC:
+   ```bash
+   echo "<paste your public key>" >> ~/.ssh/authorized_keys
    ```
 4. **Verify everything**: `make test`
 
