@@ -1,0 +1,10 @@
+# ============================================================
+# AppImage Definitions (Linux only)
+# Each entry defines a downloadable AppImage to install.
+# ============================================================
+
+[snipaste]
+url = "https://download.snipaste.com/archives/Snipaste-2.11.3-x86_64.AppImage"
+name = "Snipaste"
+icon_url = "https://www.snipaste.com/img/logo.svg"
+categories = "Graphics;Utility;"

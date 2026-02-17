@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# =============================================================================
+# dotcheck — Show drift between stow packages and $HOME
+# Reports: missing files, wrong symlink targets, and non-symlink conflicts.
+# Usage: dotcheck [--fix]
+# =============================================================================
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DOTFILES_DIR="$REPO_DIR/dotfiles"
+
+# Colors
+if [[ -t 1 ]]; then
+    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
+    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
+else
+    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
+fi
+
+ok()      { printf "${C_GREEN}  OK       %s${C_RESET}\n" "$*"; }
+missing() { printf "${C_RED}  MISSING  %s${C_RESET}\n" "$*"; }
+wrong()   { printf "${C_YELLOW}  WRONG    %s${C_RESET}\n" "$*"; }
+notlink() { printf "${C_YELLOW}  NOT LINK %s${C_RESET}\n" "$*"; }
+
+ISSUES=0
+OK=0
+
+FIX_MODE=0
+if [[ "${1:-}" == "--fix" ]]; then
+    FIX_MODE=1
+fi
+
+# =============================================================================
+# Check each file in each stow package
+# =============================================================================
+cd "$DOTFILES_DIR"
+
+for pkg_dir in */; do
+    pkg="${pkg_dir%/}"
+    [[ -z "$pkg" ]] && continue
+
+    printf "\n${C_BOLD}${C_BLUE}[%s]${C_RESET}\n" "$pkg"
+
+    while IFS= read -r -d '' file; do
+        # file is like: ./zsh/.zshrc or ./starship/.config/starship/starship.toml
+        relpath="${file#./}"      # strip leading ./
+        relpath="${relpath#$pkg/}" # strip package prefix -> .zshrc or .config/...
+
+        target="$HOME/$relpath"
+        expected="$DOTFILES_DIR/$pkg/$relpath"
+
+        if [[ ! -e "$target" ]] && [[ ! -L "$target" ]]; then
+            missing "~/$relpath (expected from $pkg)"
+            ((ISSUES++))
+            if [[ $FIX_MODE -eq 1 ]]; then
+                echo "    Restowing $pkg..."
+                stow -t "$HOME" --restow "$pkg" 2>&1 | sed 's/^/    /'
+            fi
+
+        elif [[ -L "$target" ]]; then
+            actual="$(readlink -f "$target")"
+            if [[ "$actual" == "$expected" ]]; then
+                ok "~/$relpath -> $(basename "$expected")"
+                ((OK++))
+            else
+                wrong "~/$relpath -> $actual"
+                wrong "   expected -> $expected"
+                ((ISSUES++))
+            fi
+
+        else
+            # Regular file — not managed by stow
+            notlink "~/$relpath (regular file, not a symlink — stow cannot manage)"
+            ((ISSUES++))
+            if [[ $FIX_MODE -eq 1 ]]; then
+                echo "    Backing up and restowing..."
+                mv "$target" "${target}.bak"
+                echo "    Backed up to ${target}.bak"
+                stow -t "$HOME" --restow "$pkg" 2>&1 | sed 's/^/    /'
+            fi
+        fi
+    done < <(find "$pkg" -type f -print0)
+done
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo ""
+printf "${C_BOLD}Summary:${C_RESET} %d correct" "$OK"
+[[ $ISSUES -gt 0 ]] && printf ", %d issue(s)" "$ISSUES"
+printf "\n\n"
+
+if [[ $ISSUES -eq 0 ]]; then
+    printf "${C_GREEN}${C_BOLD}All dotfile symlinks are correct.${C_RESET}\n"
+    exit 0
+else
+    printf "${C_YELLOW}%d issue(s) found.${C_RESET}\n" "$ISSUES"
+    if [[ $FIX_MODE -eq 0 ]]; then
+        echo "Run 'dotcheck --fix' to attempt automatic fixes."
+        echo "Or run 'dotup' to pull latest and re-stow everything."
+    fi
+    exit 1
+fi

@@ -1,0 +1,139 @@
+[user]
+	# Set these before committing:
+	#   git config --global user.name "Your Name"
+	#   git config --global user.email "you@example.com"
+	name = Your Name
+	email = you@example.com
+
+[core]
+	pager = delta
+	editor = code --wait
+	autocrlf = input
+	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
+	excludesfile = ~/.gitignore_global
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+
+[merge]
+	conflictstyle = zdiff3
+
+[diff]
+	algorithm = histogram
+	colorMoved = default
+
+[rebase]
+	autosquash = true
+	autostash = true
+
+[rerere]
+	enabled = true
+	autoupdate = true
+
+[branch]
+	sort = -committerdate
+
+[tag]
+	sort = version:refname
+
+# =============================================================================
+# Delta — diffing pager
+# =============================================================================
+[delta]
+	navigate = true
+	side-by-side = true
+	line-numbers = true
+	theme = Dracula
+
+[interactive]
+	diffFilter = delta --color-only
+
+# =============================================================================
+# Aliases
+# =============================================================================
+[alias]
+	# Short forms
+	st = status -sb
+	co = checkout
+	br = branch
+	cp = cherry-pick
+	rs = restore
+
+	# Logging
+	lg = log --oneline --graph --decorate --all
+	ll = log --oneline --graph --decorate -20
+	last = log -1 HEAD --stat
+
+	# Amend last commit (staged changes only)
+	amend = commit --amend --no-edit
+
+	# WIP commit (to be squashed/amended later)
+	wip = "!git add -A && git commit -m 'wip'"
+
+	# Undo last commit, keeping changes staged
+	undo = reset --soft HEAD~1
+
+	# Show tracked files
+	ls = ls-files
+
+	# Diff staged changes
+	ds = diff --staged
+
+	# List branches sorted by last commit
+	brs = branch --sort=-committerdate
+
+	# Clean up merged branches
+	cleanup = "!git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs -n 1 git branch -d"
+
+	# Show contributors
+	contrib = shortlog -sn --no-merges
+
+# =============================================================================
+# URL shortcuts
+# =============================================================================
+[url "git@github.com:"]
+	insteadOf = gh:
+
+[url "git@gitlab.com:"]
+	insteadOf = gl:
+
+# =============================================================================
+# LFS
+# =============================================================================
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+# =============================================================================
+# Colors
+# =============================================================================
+[color]
+	ui = auto
+
+[color "branch"]
+	current = yellow bold
+	local = green bold
+	remote = cyan bold
+
+[color "diff"]
+	meta = yellow bold
+	frag = magenta bold
+	old = red bold
+	new = green bold
+	whitespace = red reverse
+
+[color "status"]
+	added = green bold
+	changed = yellow bold
+	untracked = red bold

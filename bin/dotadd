@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# =============================================================================
+# dotadd — Adopt a file from $HOME into a stow package
+# Usage: dotadd <stow-package> <file-path>
+# Example: dotadd zsh ~/.zshrc
+#          dotadd git ~/.gitconfig
+#
+# Moves the file into the stow package directory and creates a symlink back.
+# =============================================================================
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DOTFILES_DIR="$REPO_DIR/dotfiles"
+
+# Colors
+if [[ -t 1 ]]; then
+    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
+    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
+else
+    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
+fi
+
+info()    { printf "${C_BLUE}${C_BOLD}==>%s${C_RESET}${C_BLUE} %s${C_RESET}\n" "" "$*"; }
+success() { printf "${C_GREEN}  ✓ %s${C_RESET}\n" "$*"; }
+warn()    { printf "${C_YELLOW}  ! %s${C_RESET}\n" "$*"; }
+die()     { printf "${C_RED}  ✗ %s${C_RESET}\n" "$*" >&2; exit 1; }
+
+# =============================================================================
+# Usage check
+# =============================================================================
+if [[ $# -lt 2 ]]; then
+    cat <<EOF
+Usage: dotadd <stow-package> <file-path>
+
+Moves a file from your home directory into the specified stow package
+and restows so a symlink replaces the original file.
+
+Examples:
+  dotadd zsh ~/.zshrc
+  dotadd git ~/.gitconfig
+  dotadd starship ~/.config/starship/starship.toml
+
+Available packages:
+EOF
+    ls "$DOTFILES_DIR/" | sed 's/^/  /'
+    exit 1
+fi
+
+PKG="$1"
+FILEPATH="$(realpath "$2")"
+
+# =============================================================================
+# Validate inputs
+# =============================================================================
+if [[ ! -e "$FILEPATH" ]]; then
+    die "File not found: $FILEPATH"
+fi
+
+if [[ -L "$FILEPATH" ]]; then
+    die "$FILEPATH is already a symlink — it may already be managed by stow"
+fi
+
+# Compute path relative to $HOME
+if [[ "$FILEPATH" != "$HOME"/* ]]; then
+    die "File must be under \$HOME ($HOME), got: $FILEPATH"
+fi
+
+RELPATH="${FILEPATH#$HOME/}"
+
+# =============================================================================
+# Package directory
+# =============================================================================
+PKG_DIR="$DOTFILES_DIR/$PKG"
+
+if [[ ! -d "$PKG_DIR" ]]; then
+    info "Creating new stow package: $PKG"
+    mkdir -p "$PKG_DIR"
+fi
+
+DEST="$PKG_DIR/$RELPATH"
+DEST_DIR="$(dirname "$DEST")"
+
+# =============================================================================
+# Check for conflicts
+# =============================================================================
+if [[ -e "$DEST" ]]; then
+    die "Destination already exists in stow package: $DEST"
+fi
+
+# =============================================================================
+# Move file into stow package
+# =============================================================================
+info "Moving $FILEPATH -> $DEST"
+mkdir -p "$DEST_DIR"
+mv "$FILEPATH" "$DEST"
+success "Moved file into '$PKG' package"
+
+# =============================================================================
+# Re-stow the package (creates the symlink)
+# =============================================================================
+info "Restowing '$PKG'..."
+cd "$DOTFILES_DIR"
+if stow -t "$HOME" --restow "$PKG"; then
+    success "Stowed '$PKG' — symlink created at ~/$RELPATH"
+else
+    warn "Stow encountered a conflict. Rolling back..."
+    mv "$DEST" "$FILEPATH"
+    die "Stow failed — original file restored. Check for conflicts."
+fi
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo ""
+success "Done! ~/$RELPATH is now managed by stow (package: $PKG)"
+echo ""
+echo "To commit this change:"
+echo "  cd $REPO_DIR"
+echo "  git add dotfiles/$PKG/$RELPATH"
+echo "  git commit -m 'dotfiles: add $RELPATH to $PKG'"

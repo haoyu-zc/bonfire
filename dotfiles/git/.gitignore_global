@@ -1,0 +1,104 @@
+# =============================================================================
+# Global gitignore — applies to all repos
+# =============================================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.nfs*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editors
+.idea/
+.idea/**
+*.iml
+.vscode/
+*.swp
+*.swo
+*.swn
+*~
+\#*\#
+.\#*
+.project
+.classpath
+.settings/
+*.sublime-workspace
+.history/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.envrc
+*.secret
+secrets.yaml
+secrets.yml
+credentials.json
+
+# Dependencies
+node_modules/
+bower_components/
+vendor/bundle
+.vendor/
+
+# Build outputs
+dist/
+build/
+out/
+target/
+*.o
+*.so
+*.dylib
+*.dll
+*.class
+*.pyc
+*.pyo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.egg
+.mypy_cache/
+.dmypy.json
+.pytest_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Rust
+/debug/
+/release/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache

@@ -1,0 +1,30 @@
+# =============================================================================
+# bat configuration
+# https://github.com/sharkdp/bat
+# =============================================================================
+
+# Set the color theme
+--theme="Dracula"
+
+# Use "full" style (line numbers, decorations, etc.)
+--style="full"
+
+# Enable syntax highlighting for common file extensions
+# (bat auto-detects most — add custom mappings here if needed)
+
+# Tab width
+--tabs=4
+
+# Use italic text in the output
+--italic-text=always
+
+# Map additional file extensions to languages
+--map-syntax="*.toml:TOML"
+--map-syntax="*.lock:TOML"
+--map-syntax="*.zshrc:Zsh"
+--map-syntax="*.zshenv:Zsh"
+--map-syntax="*.zsh:Zsh"
+--map-syntax="*.bash:Bash"
+--map-syntax="Dockerfile*:Dockerfile"
+--map-syntax=".env*:DotENV"
+--map-syntax="*.jsonc:JSON"

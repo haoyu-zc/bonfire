@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# =============================================================================
+# dotup — Pull latest changes and re-stow all dotfile packages
+# Usage: dotup
+# =============================================================================
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Colors
+if [[ -t 1 ]]; then
+    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
+    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
+else
+    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
+fi
+
+info()    { printf "${C_BLUE}${C_BOLD}==>%s${C_RESET}${C_BLUE} %s${C_RESET}\n" "" "$*"; }
+success() { printf "${C_GREEN}  ✓ %s${C_RESET}\n" "$*"; }
+warn()    { printf "${C_YELLOW}  ! %s${C_RESET}\n" "$*"; }
+error()   { printf "${C_RED}  ✗ %s${C_RESET}\n" "$*"; }
+
+# =============================================================================
+# Pull latest changes
+# =============================================================================
+info "Pulling latest changes from remote..."
+cd "$REPO_DIR"
+
+if git remote get-url origin &>/dev/null; then
+    git pull --rebase
+    success "Repository up to date"
+else
+    warn "No remote configured — skipping git pull"
+fi
+
+# =============================================================================
+# Re-stow all dotfile packages
+# =============================================================================
+info "Re-stowing dotfiles..."
+cd "$REPO_DIR/dotfiles"
+ERRORS=0
+STOWED=0
+
+for pkg_dir in */; do
+    pkg="${pkg_dir%/}"
+    [[ -z "$pkg" ]] && continue
+
+    if stow -t "$HOME" --restow "$pkg" 2>&1; then
+        success "$pkg"
+        ((STOWED++))
+    else
+        warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
+        ((ERRORS++))
+    fi
+done
+
+# =============================================================================
+# Update mise tools
+# =============================================================================
+info "Running mise install..."
+if command -v mise &>/dev/null; then
+    mise install
+    success "mise tools up to date"
+else
+    warn "mise not found — skipping"
+fi
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo ""
+printf "${C_BOLD}Summary:${C_RESET} %d stowed" "$STOWED"
+[[ $ERRORS -gt 0 ]] && printf ", %d conflict(s)" "$ERRORS"
+printf "\n"
+
+if [[ $ERRORS -gt 0 ]]; then
+    warn "Run 'dotcheck' to see all issues"
+fi
+
+echo ""
+echo "Done. Restart your shell to pick up changes."
