@@ -40,6 +40,6 @@ log_info "Installing Flatpak apps from packages.toml..."
 while IFS= read -r app_id; do
     [[ -z "$app_id" ]] && continue
     ensure_flatpak "$app_id"
-done < <(toml_get_array "$PACKAGES_TOML" "packages")
+done < <(toml_get_array "$PACKAGES_TOML" "flatpak" "packages")
 
 log_success "Flatpak setup complete"
