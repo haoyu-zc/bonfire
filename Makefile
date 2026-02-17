@@ -37,6 +37,14 @@ mise: ## Install/update mise tools only
 sync: ## Pull latest, re-stow dotfiles, update mise tools
 	@bin/dotup
 
+.PHONY: sync-all
+sync-all: ## Full sync: pull + dotfiles + all packages + mise prune
+	@bin/dotsync
+
+.PHONY: audit
+audit: ## Show drift between config and installed packages
+	@bin/pkgaudit
+
 .PHONY: check
 check: ## Show dotfile symlink drift
 	@bin/dotcheck

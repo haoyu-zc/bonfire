@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
 # dotup — Pull latest changes and re-stow all dotfile packages
-# Usage: dotup
+# Usage: dotup [--full]
+#   --full   Full sync: re-run all install scripts + mise prune (delegates to dotsync)
 # =============================================================================
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [[ "${1:-}" == "--full" ]]; then
+    exec "$REPO_DIR/bin/dotsync"
+fi
 
 # Colors
 if [[ -t 1 ]]; then
@@ -47,10 +52,10 @@ for pkg_dir in */; do
 
     if stow -t "$HOME" --restow "$pkg" 2>&1; then
         success "$pkg"
-        ((STOWED++))
+        STOWED=$(( STOWED + 1 ))
     else
         warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
-        ((ERRORS++))
+        ERRORS=$(( ERRORS + 1 ))
     fi
 done
 
