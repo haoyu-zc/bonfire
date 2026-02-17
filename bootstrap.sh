@@ -5,6 +5,8 @@
 # Usage:
 #   ./bootstrap.sh                   # Full setup (prompts for confirmation)
 #   ./bootstrap.sh --yes             # Full setup (no prompts)
+#   ./bootstrap.sh --from 03         # Resume from a specific step (skips earlier ones)
+#   ./bootstrap.sh --from apt-repos  # Same, matched by keyword
 #   ./bootstrap.sh --only mise       # Run only the mise script
 #   ./bootstrap.sh --only dotfiles   # Run only the dotfiles script
 #   ./bootstrap.sh --only "apt mise" # Run multiple specific scripts
@@ -24,6 +26,7 @@ source "$REPO_DIR/scripts/_lib.sh"
 # =============================================================================
 AUTO_YES=0
 ONLY_FILTER=""
+FROM_STEP=""
 DO_LIST=0
 
 while [[ $# -gt 0 ]]; do
@@ -34,6 +37,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --only)
             ONLY_FILTER="$2"
+            shift 2
+            ;;
+        --from)
+            FROM_STEP="$2"
             shift 2
             ;;
         --list)
@@ -72,10 +79,11 @@ if [[ $DO_LIST -eq 1 ]]; then
 fi
 
 # =============================================================================
-# Filter scripts if --only given
+# Filter scripts
 # =============================================================================
 SCRIPTS_TO_RUN=()
 if [[ -n "$ONLY_FILTER" ]]; then
+    # --only: run just the named script(s)
     for keyword in $ONLY_FILTER; do
         found=0
         for script in "${ALL_SCRIPTS[@]}"; do
@@ -90,6 +98,23 @@ if [[ -n "$ONLY_FILTER" ]]; then
     done
     if [[ ${#SCRIPTS_TO_RUN[@]} -eq 0 ]]; then
         log_error "No matching scripts found for filter: $ONLY_FILTER"
+        exit 1
+    fi
+elif [[ -n "$FROM_STEP" ]]; then
+    # --from: skip all scripts before the matching one
+    found=0
+    for script in "${ALL_SCRIPTS[@]}"; do
+        name="$(basename "$script")"
+        if [[ $found -eq 0 ]]; then
+            if [[ "$name" == *"$FROM_STEP"* ]]; then
+                found=1
+            fi
+        fi
+        [[ $found -eq 1 ]] && SCRIPTS_TO_RUN+=("$script")
+    done
+    if [[ ${#SCRIPTS_TO_RUN[@]} -eq 0 ]]; then
+        log_error "No script matching --from keyword: $FROM_STEP"
+        log_info "Run './bootstrap.sh --list' to see available scripts"
         exit 1
     fi
 else
@@ -115,10 +140,28 @@ printf "${C_BOLD}  Platform: ${C_CYAN}%s (%s)${C_RESET}\n" "$OS" "$DISTRO"
 printf "${C_BOLD}  Repo:     ${C_CYAN}%s${C_RESET}\n" "$REPO_DIR"
 printf "${C_BOLD}  Scripts:  ${C_CYAN}%d to run${C_RESET}\n\n" "${#SCRIPTS_TO_RUN[@]}"
 
+# Script descriptions
+declare -A SCRIPT_DESC=(
+    [01-system-update.sh]="Update system packages / Xcode CLT"
+    [02-homebrew.sh]="Install Homebrew + formulae (+ casks on macOS)"
+    [03-apt-repos.sh]="Add third-party apt repos (Chrome, VSCode, Docker)"
+    [04-apt-packages.sh]="Install apt packages"
+    [05-flatpak.sh]="Install Flatpak apps (Obsidian, Slack)"
+    [06-appimages.sh]="Download & install AppImages (Snipaste)"
+    [07-mise.sh]="Install mise + dev tools (Node, Python, fzf, eza…)"
+    [08-shell-setup.sh]="Install Zsh and set as default shell"
+    [09-dotfiles.sh]="Symlink dotfiles via GNU Stow"
+    [10-ssh-server.sh]="Configure openssh-server with hardened settings"
+    [11-desktop-settings.sh]="Apply desktop prefs + CapsLock/Esc swap"
+    [12-verify.sh]="Run all checks and print summary"
+)
+
 # List what will run
 printf "${C_BOLD}Scripts to run:${C_RESET}\n"
 for script in "${SCRIPTS_TO_RUN[@]}"; do
-    printf "  %s\n" "$(basename "$script")"
+    name="$(basename "$script")"
+    desc="${SCRIPT_DESC[$name]:-}"
+    printf "  ${C_CYAN}%-28s${C_RESET} %s\n" "$name" "$desc"
 done
 echo ""
 
