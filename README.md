@@ -99,7 +99,9 @@ machine-setup/
 │   ├── 11-desktop-settings.sh
 │   └── 12-verify.sh
 ├── bin/
-│   ├── dotup                 # Pull + re-stow dotfiles
+│   ├── dotup                 # Pull + re-stow dotfiles (--full delegates to dotsync)
+│   ├── dotsync               # Full sync: pull + packages + mise prune
+│   ├── pkgaudit              # Read-only drift report
 │   ├── dotadd                # Add file to stow package
 │   └── dotcheck              # Check symlink drift
 ├── dotfiles/                 # GNU Stow packages
@@ -115,36 +117,75 @@ machine-setup/
     └── test-services.sh
 ```
 
-## Configuration
+## Managing Packages
 
-Edit `config/packages.toml` to add or remove packages:
+### Quick reference
+
+| Command | What it does |
+|---------|-------------|
+| `make sync` | Pull latest + re-stow dotfiles + `mise install` |
+| `make sync-all` | Everything in `sync`, plus re-run all install scripts + `mise prune` |
+| `make audit` | Read-only drift report: missing vs extra per manager |
+| `dotup --full` | Same as `make sync-all` |
+
+### Adding a package
+
+Edit the relevant config file, then run `make sync-all`.
+
+| Manager | Config file | Section/key |
+|---------|------------|-------------|
+| apt | `config/packages.toml` | `[apt] packages` |
+| Flatpak | `config/packages.toml` | `[flatpak] packages` |
+| Homebrew formula | `config/packages.toml` | `[brew] formulae` |
+| Homebrew cask (macOS) | `config/packages.toml` | `[brew] casks` |
+| AppImage (Linux) | `config/appimages.toml` | new `[key]` section |
+| Dev tool (mise) | `dotfiles/mise/.config/mise/config.toml` | `[tools]` |
+
+Example — add an apt package:
 
 ```toml
+# config/packages.toml
 [apt]
-packages = ["my-new-package"]
-
-[flatpak]
-packages = ["com.example.App"]
-
-[brew]
-casks = ["my-mac-app"]
+packages = [
+    # ... existing packages ...
+    "my-new-package",
+]
 ```
 
-Edit `config/appimages.toml` to add Linux AppImages:
+Then:
 
-```toml
-[myapp]
-url = "https://example.com/MyApp.AppImage"
-name = "My App"
-categories = "Utility;"
+```bash
+make sync-all
 ```
 
-Edit `dotfiles/mise/.config/mise/config.toml` to add dev tools:
+### Removing a package
 
-```toml
-[tools]
-"ubi:owner/repo" = "latest"
+1. Delete the entry from the config file.
+2. Uninstall manually — auto-removal is intentionally not implemented to avoid
+   accidental data loss.
+
+| Manager | Uninstall command |
+|---------|------------------|
+| apt | `sudo apt remove <package>` |
+| Flatpak | `flatpak uninstall <app-id>` |
+| Homebrew formula | `brew uninstall <formula>` |
+| Homebrew cask | `brew uninstall --cask <cask>` |
+| AppImage | `rm ~/.local/share/AppImages/<file>.AppImage` |
+| mise | Remove from config then `make sync-all` — `mise prune` removes it automatically |
+
+### Auditing drift
+
+```bash
+make audit
 ```
+
+Prints a per-manager report of:
+- **MISSING** — in config but not installed
+- **EXTRA** — installed but not in config (flatpak, brew, mise only; apt extras
+  are skipped as base system packages are too numerous to track)
+
+Run this after switching machines or pulling someone else's changes to see what
+still needs to be installed.
 
 ## After Setup
 
