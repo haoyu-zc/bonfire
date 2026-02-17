@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+# =============================================================================
+# pkgaudit — Read-only audit comparing installed packages against config.
+# Reports missing (in config, not installed) and extra (installed, not in
+# config) packages per manager. Never modifies anything.
+# Usage: pkgaudit
+# =============================================================================
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPTS_DIR="$REPO_DIR/scripts"
+PACKAGES_TOML="$REPO_DIR/config/packages.toml"
+APPIMAGES_TOML="$REPO_DIR/config/appimages.toml"
+
+# Source shared utilities (logging + helpers)
+# shellcheck source=../scripts/_lib.sh
+source "$SCRIPTS_DIR/_lib.sh"
+
+ISSUES=0
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+print_header() {
+    printf "\n${C_BOLD}${C_BLUE}==> %s${C_RESET}\n" "$1"
+}
+
+print_missing() {
+    printf "${C_RED}  MISSING  ${C_RESET} %s\n" "$1"
+    ISSUES=$(( ISSUES + 1 ))
+}
+
+print_extra() {
+    printf "${C_YELLOW}  EXTRA    ${C_RESET} %s\n" "$1"
+    ISSUES=$(( ISSUES + 1 ))
+}
+
+print_ok() {
+    printf "${C_GREEN}  ok       ${C_RESET} %s\n" "$1"
+}
+
+# =============================================================================
+# APT audit (missing only — extras too noisy from base system packages)
+# =============================================================================
+audit_apt() {
+    [[ "$OS" == "linux" ]] || return 0
+    print_header "APT packages (missing only)"
+
+    local found=0
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" ]] && continue
+        if apt_installed "$pkg"; then
+            print_ok "$pkg"
+        else
+            print_missing "$pkg"
+            found=$(( found + 1 ))
+        fi
+    done < <(toml_get_array "$PACKAGES_TOML" "apt" "packages")
+
+    [[ $found -eq 0 ]] && printf "  (all configured apt packages are installed)\n"
+}
+
+# =============================================================================
+# Flatpak audit (missing + extra)
+# =============================================================================
+audit_flatpak() {
+    [[ "$OS" == "linux" ]] || return 0
+    command_exists flatpak || { print_header "Flatpak"; printf "  flatpak not installed — skipping\n"; return 0; }
+
+    print_header "Flatpak apps"
+
+    # Build set of configured app IDs
+    declare -A configured=()
+    while IFS= read -r app_id; do
+        [[ -z "$app_id" ]] && continue
+        configured["$app_id"]=1
+        if flatpak_installed "$app_id"; then
+            print_ok "$app_id"
+        else
+            print_missing "$app_id"
+        fi
+    done < <(toml_get_array "$PACKAGES_TOML" "flatpak" "packages")
+
+    # Check for extras (installed but not in config)
+    while IFS= read -r installed_id; do
+        [[ -z "$installed_id" ]] && continue
+        if [[ -z "${configured[$installed_id]+_}" ]]; then
+            print_extra "$installed_id"
+        fi
+    done < <(flatpak list --app --columns=application 2>/dev/null || true)
+}
+
+# =============================================================================
+# AppImage audit (missing only — no easy way to detect extras by config key)
+# =============================================================================
+audit_appimages() {
+    [[ "$OS" == "linux" ]] || return 0
+    [[ -f "$APPIMAGES_TOML" ]] || return 0
+
+    print_header "AppImages (file presence)"
+
+    local APPIMAGE_DIR="$HOME/.local/share/AppImages"
+
+    while IFS= read -r key; do
+        [[ -z "$key" ]] && continue
+        local url name filename appimage_path
+        url="$(toml_get_table_value "$APPIMAGES_TOML" "$key" "url")"
+        name="$(toml_get_table_value "$APPIMAGES_TOML" "$key" "name")"
+        [[ -z "$url" ]] && continue
+        filename="$(basename "$url")"
+        appimage_path="$APPIMAGE_DIR/$filename"
+
+        if [[ -f "$appimage_path" ]]; then
+            print_ok "${name:-$key} ($filename)"
+        else
+            print_missing "${name:-$key} ($filename)"
+        fi
+    done < <(awk '/^\[[a-z]/ { gsub(/[\[\]]/, ""); if ($0 !~ /\./) print $0 }' "$APPIMAGES_TOML")
+}
+
+# =============================================================================
+# Homebrew audit (missing + extra)
+# =============================================================================
+audit_brew() {
+    command_exists brew || { print_header "Homebrew"; printf "  brew not installed — skipping\n"; return 0; }
+
+    setup_homebrew_path
+
+    print_header "Homebrew formulae"
+
+    declare -A configured_formulae=()
+    while IFS= read -r formula; do
+        [[ -z "$formula" ]] && continue
+        configured_formulae["$formula"]=1
+        if brew_installed "$formula"; then
+            print_ok "$formula"
+        else
+            print_missing "$formula"
+        fi
+    done < <(toml_get_array "$PACKAGES_TOML" "brew" "formulae")
+
+    # Extras: installed formulae not in config
+    while IFS= read -r installed; do
+        [[ -z "$installed" ]] && continue
+        if [[ -z "${configured_formulae[$installed]+_}" ]]; then
+            print_extra "$installed"
+        fi
+    done < <(brew list --formula 2>/dev/null || true)
+
+    # Casks (macOS only)
+    if [[ "$OS" == "darwin" ]]; then
+        print_header "Homebrew casks (macOS)"
+
+        declare -A configured_casks=()
+        while IFS= read -r cask; do
+            [[ -z "$cask" ]] && continue
+            configured_casks["$cask"]=1
+            if brew_cask_installed "$cask"; then
+                print_ok "$cask"
+            else
+                print_missing "$cask"
+            fi
+        done < <(toml_get_array "$PACKAGES_TOML" "brew" "casks")
+
+        while IFS= read -r installed; do
+            [[ -z "$installed" ]] && continue
+            if [[ -z "${configured_casks[$installed]+_}" ]]; then
+                print_extra "$installed"
+            fi
+        done < <(brew list --cask 2>/dev/null || true)
+    fi
+}
+
+# =============================================================================
+# mise audit
+# =============================================================================
+audit_mise() {
+    command_exists mise || { print_header "mise"; printf "  mise not installed — skipping\n"; return 0; }
+
+    print_header "mise tools (installed vs config)"
+
+    # Show full mise ls output — it already shows config vs installed state
+    mise ls 2>/dev/null || true
+}
+
+# =============================================================================
+# Run all audits
+# =============================================================================
+printf "\n${C_BOLD}pkgaudit — Package drift report${C_RESET}\n"
+printf "Config: %s\n" "$PACKAGES_TOML"
+
+audit_apt
+audit_flatpak
+audit_appimages
+audit_brew
+audit_mise
+
+# =============================================================================
+# Summary
+# =============================================================================
+echo ""
+if [[ $ISSUES -eq 0 ]]; then
+    log_success "No drift detected — all configured packages are installed"
+else
+    log_warn "$ISSUES item(s) with drift (MISSING or EXTRA — see above)"
+fi
+echo ""
