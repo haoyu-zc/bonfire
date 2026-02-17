@@ -1,0 +1,100 @@
+# ============================================================
+# Package Configuration
+# Edit this file to add/remove packages, then re-run bootstrap
+# ============================================================
+
+# --- APT (Linux only) ---
+
+[apt.repos]
+# format: name = { key = "url", repo = "deb line" }
+
+[apt.repos.google-chrome]
+key = "https://dl.google.com/linux/linux_signing_key.pub"
+repo = "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main"
+
+[apt.repos.vscode]
+key = "https://packages.microsoft.com/keys/microsoft.asc"
+repo = "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main"
+
+[apt.repos.docker]
+key = "https://download.docker.com/linux/ubuntu/gpg"
+repo = "deb [arch=amd64] https://download.docker.com/linux/ubuntu noble stable"
+
+[apt]
+packages = [
+    # Build essentials
+    "build-essential",
+    "curl",
+    "wget",
+    "git",
+    "stow",
+    "unzip",
+    "zip",
+    "ca-certificates",
+    "gnupg",
+    "software-properties-common",
+
+    # Clipboard
+    "xclip",
+    "wl-clipboard",
+
+    # Shell
+    "zsh",
+    "zsh-autosuggestions",
+    "zsh-syntax-highlighting",
+
+    # Dev libraries (for compiling Python, etc.)
+    "libssl-dev",
+    "libffi-dev",
+    "zlib1g-dev",
+    "libreadline-dev",
+    "libsqlite3-dev",
+    "libncursesw5-dev",
+    "liblzma-dev",
+
+    # System tools
+    "htop",
+    "btop",
+    "tree",
+    "ncdu",
+
+    # Docker (from docker repo)
+    "docker-ce",
+    "docker-ce-cli",
+    "containerd.io",
+    "docker-buildx-plugin",
+    "docker-compose-plugin",
+
+    # From third-party repos
+    "google-chrome-stable",
+    "code",
+]
+
+# --- Flatpak (Linux only) ---
+
+[flatpak]
+packages = [
+    "md.obsidian.Obsidian",
+]
+
+# --- Homebrew ---
+
+[brew]
+# Formulae: installed on both Linux and macOS
+formulae = [
+    "stow",
+    "zsh-autosuggestions",
+    "zsh-syntax-highlighting",
+]
+
+# Casks: macOS only
+casks = [
+    "google-chrome",
+    "obsidian",
+    "visual-studio-code",
+    "snipaste",
+    "wezterm",
+    "rectangle",
+    "raycast",
+    "karabiner-elements",
+]

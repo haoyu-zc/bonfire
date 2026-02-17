@@ -1,0 +1,31 @@
+# =============================================================================
+# mise global configuration
+# https://mise.jdx.dev/
+# Manages dev tool versions across all projects.
+# =============================================================================
+
+[tools]
+# Language runtimes
+node = "lts"
+python = "3.12"
+
+# CLI tools via ubi (universal binary installer)
+# These pull prebuilt binaries from GitHub releases — no compilers needed
+"ubi:junegunn/fzf"          = "latest"   # fuzzy finder
+"ubi:ajeetdsouza/zoxide"    = "latest"   # smarter cd
+"ubi:BurntSushi/ripgrep"    = "latest"   # fast grep (rg)
+"ubi:sharkdp/bat"           = "latest"   # cat with syntax highlighting
+"ubi:sharkdp/fd"            = "latest"   # fast find
+"ubi:eza-community/eza"     = "latest"   # modern ls
+"ubi:dandavison/delta"      = "latest"   # better git diff
+"ubi:jesseduffield/lazygit" = "latest"   # terminal git UI
+"ubi:starship/starship"     = "latest"   # cross-shell prompt
+"ubi:dbrgn/tealdeer"        = "latest"   # fast tldr pages (tldr command)
+"ubi:jqlang/jq"             = "latest"   # JSON processor
+"ubi:mikefarah/yq"          = "latest"   # YAML processor
+"ubi:astral-sh/uv"          = "latest"   # fast Python package manager
+"ubi:astral-sh/ruff"        = "latest"   # fast Python linter + formatter
+
+[settings]
+# Always use the latest compatible version for each tool
+experimental = true
