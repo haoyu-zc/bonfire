@@ -44,7 +44,7 @@ log_info "Installing Homebrew formulae..."
 while IFS= read -r formula; do
     [[ -z "$formula" ]] && continue
     ensure_brew_formula "$formula"
-done < <(toml_get_array "$PACKAGES_TOML" "formulae")
+done < <(toml_get_array "$PACKAGES_TOML" "brew" "formulae")
 
 # =============================================================================
 # Install casks (macOS only)
@@ -54,7 +54,7 @@ if [[ "$OS" == "darwin" ]]; then
     while IFS= read -r cask; do
         [[ -z "$cask" ]] && continue
         ensure_brew_cask "$cask"
-    done < <(toml_get_array "$PACKAGES_TOML" "casks")
+    done < <(toml_get_array "$PACKAGES_TOML" "brew" "casks")
 else
     log_info "Skipping casks (Linux — GUI apps installed via apt/Flatpak/AppImage)"
 fi

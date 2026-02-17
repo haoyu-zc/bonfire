@@ -170,52 +170,47 @@ ensure_brew_cask() {
 # TOML Parsing (lightweight, handles the subset used in this repo)
 # =============================================================================
 
-# toml_get_array <file> <key>
-# Extracts a TOML array value for a simple key = ["a", "b", ...] pattern.
-# Handles multi-line arrays and returns one item per line (without quotes).
+# toml_get_array <file> <section> <key>
+# Extracts items from a TOML array under [section] key = ["a", "b", ...].
+# Section-aware and strips comment lines before parsing.
 toml_get_array() {
     local file="$1"
-    local key="$2"
-    # Use awk to handle multi-line arrays
-    awk -v key="$key" '
-    BEGIN { found=0; collecting=0; buffer="" }
-    {
-        # Check for key = [ start
-        if (!collecting && $0 ~ "^[[:space:]]*" key "[[:space:]]*=") {
-            found=1
-            # Get everything after the =
-            sub(/^[^=]+=/, "")
-            buffer=$0
-            if (buffer ~ /\[/) {
-                collecting=1
-                # Remove the opening bracket
-                sub(/^[^[]*\[/, "", buffer)
-            }
+    local section="$2"
+    local key="$3"
+    awk -v section="$section" -v key="$key" '
+    BEGIN { in_section=0; collecting=0; buffer="" }
+    /^\[/ {
+        header=$0
+        gsub(/^\[|\]$/, "", header)
+        in_section = (header == section) ? 1 : 0
+        # If we were mid-collection and hit a new section, abort
+        if (!in_section) { collecting=0; buffer="" }
+        next
+    }
+    in_section {
+        # Skip comment lines entirely (avoids commas inside comments)
+        if ($0 ~ /^[[:space:]]*#/) next
+
+        line=$0
+        if (!collecting && line ~ "^[[:space:]]*" key "[[:space:]]*=") {
+            collecting=1
+            sub(/^[^=]+=/, "", line)       # drop everything up to =
+            sub(/^[^[]*\[/, "", line)      # drop up to opening [
+            buffer=line
         } else if (collecting) {
-            buffer=buffer $0
+            buffer=buffer " " line
         }
 
-        if (collecting) {
-            # Check if we have the closing bracket
-            if (buffer ~ /\]/) {
-                # Extract content before closing bracket
-                sub(/\].*$/, "", buffer)
-                collecting=0
-                found=0
-
-                # Split by comma and print each item
-                n=split(buffer, items, ",")
-                for (i=1; i<=n; i++) {
-                    item=items[i]
-                    # Trim whitespace and quotes
-                    gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", item)
-                    # Skip comments and empty
-                    if (item !~ /^#/ && item != "") {
-                        print item
-                    }
-                }
-                buffer=""
+        if (collecting && buffer ~ /\]/) {
+            sub(/\].*$/, "", buffer)       # drop closing ] and beyond
+            collecting=0
+            n=split(buffer, items, ",")
+            for (i=1; i<=n; i++) {
+                item=items[i]
+                gsub(/^[[:space:]"]+|[[:space:]"]+$/, "", item)
+                if (item != "") print item
             }
+            buffer=""
         }
     }
     ' "$file"
@@ -280,7 +275,7 @@ toml_get_table_value() {
     awk -v section="$section" -v key="$key" '
     BEGIN { in_section=0 }
     /^\[/ {
-        gsub(/^\[|\]$/)
+        gsub(/^\[|\]$/, "")
         if ($0 == section) {
             in_section=1
         } else {

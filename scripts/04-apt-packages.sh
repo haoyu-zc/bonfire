@@ -24,7 +24,7 @@ while IFS= read -r pkg; do
     else
         packages+=("$pkg")
     fi
-done < <(toml_get_array "$PACKAGES_TOML" "packages")
+done < <(toml_get_array "$PACKAGES_TOML" "apt" "packages")
 
 if [[ ${#packages[@]} -eq 0 ]]; then
     log_success "All apt packages already installed"
@@ -32,17 +32,6 @@ else
     log_info "Installing ${#packages[@]} package(s): ${packages[*]}"
     sudo apt-get install -y "${packages[@]}"
     log_success "Installed ${#packages[@]} package(s)"
-fi
-
-# Add current user to docker group (avoid needing sudo for docker)
-if apt_installed docker-ce || command_exists docker; then
-    if ! groups "$USER" | grep -q docker; then
-        log_info "Adding $USER to docker group..."
-        sudo usermod -aG docker "$USER"
-        log_warn "Log out and back in for docker group membership to take effect"
-    else
-        log_success "User already in docker group"
-    fi
 fi
 
 log_success "APT packages installation complete"
