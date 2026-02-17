@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# =============================================================================
+# dotsync — Full sync: pull + re-stow dotfiles + re-run all install scripts
+#           + prune mise tools no longer in config
+# Usage: dotsync
+# =============================================================================
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPTS_DIR="$REPO_DIR/scripts"
+
+# Source shared logging
+# shellcheck source=../scripts/_lib.sh
+source "$SCRIPTS_DIR/_lib.sh"
+
+# =============================================================================
+# Pull latest changes
+# =============================================================================
+log_section "Git Pull"
+
+cd "$REPO_DIR"
+if git remote get-url origin &>/dev/null; then
+    git pull --rebase
+    log_success "Repository up to date"
+else
+    log_warn "No remote configured — skipping git pull"
+fi
+
+# =============================================================================
+# Re-stow all dotfile packages
+# =============================================================================
+log_section "Dotfiles"
+
+cd "$REPO_DIR/dotfiles"
+ERRORS=0
+STOWED=0
+
+for pkg_dir in */; do
+    pkg="${pkg_dir%/}"
+    [[ -z "$pkg" ]] && continue
+
+    if stow -t "$HOME" --restow "$pkg" 2>&1; then
+        log_success "$pkg"
+        STOWED=$(( STOWED + 1 ))
+    else
+        log_warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
+        ERRORS=$(( ERRORS + 1 ))
+    fi
+done
+
+printf "\n"
+printf "Stowed: %d" "$STOWED"
+[[ $ERRORS -gt 0 ]] && printf ", conflicts: %d" "$ERRORS"
+printf "\n"
+
+# =============================================================================
+# Re-run install scripts (idempotent — only installs what's missing)
+# =============================================================================
+log_section "Package Scripts"
+
+run_script() {
+    local script="$1"
+    local path="$SCRIPTS_DIR/$script"
+    if [[ -f "$path" ]]; then
+        log_info "Running $script..."
+        bash "$path"
+    else
+        log_warn "$script not found — skipping"
+    fi
+}
+
+run_script "02-homebrew.sh"
+run_script "04-apt-packages.sh"
+run_script "05-flatpak.sh"
+run_script "06-appimages.sh"
+run_script "07-mise.sh"
+
+# =============================================================================
+# Prune mise tools no longer in config
+# =============================================================================
+log_section "mise Prune"
+
+if command_exists mise; then
+    log_info "Pruning mise tools no longer in config..."
+    mise prune --yes
+    log_success "mise pruned"
+else
+    log_warn "mise not found — skipping prune"
+fi
+
+# =============================================================================
+# Done
+# =============================================================================
+echo ""
+log_success "Full sync complete. Restart your shell to pick up changes."
