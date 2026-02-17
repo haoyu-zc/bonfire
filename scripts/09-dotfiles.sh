@@ -32,6 +32,30 @@ fi
 log_success "stow available: $(stow --version | head -1)"
 
 # =============================================================================
+# Back up any real files that would conflict with stow
+# =============================================================================
+backup_conflicts() {
+    local pkg="$1"
+    # Dry-run stow and parse conflict lines to find blocking real files.
+    # Use || true throughout: stow exits non-zero on conflicts, grep exits
+    # non-zero when no matches — both are fine here.
+    local conflicts
+    conflicts="$(stow -t "$HOME" --restow --simulate "$pkg" 2>&1 || true)"
+    conflicts="$(printf '%s\n' "$conflicts" \
+        | grep "existing target is neither a link nor a directory" \
+        | sed 's/.*: //')" || true
+
+    while IFS= read -r relpath; do
+        [[ -z "$relpath" ]] && continue
+        local target="$HOME/$relpath"
+        if [[ -f "$target" && ! -L "$target" ]]; then
+            log_warn "Backing up real file: ~/$relpath -> ~/${relpath}.bak"
+            mv "$target" "${target}.bak"
+        fi
+    done <<< "$conflicts"
+}
+
+# =============================================================================
 # Stow each dotfile package
 # =============================================================================
 log_info "Stowing dotfile packages from $DOTFILES_DIR..."
@@ -44,13 +68,14 @@ for pkg_dir in */; do
 
     log_step "Stowing: $pkg"
 
-    # --adopt flag would pull real files into the stow dir — don't use it here.
-    # Use --restow to re-stow (handles update after package changes).
+    # Back up any pre-existing real files that would block stow
+    backup_conflicts "$pkg"
+
     if stow -t "$HOME" --restow "$pkg" 2>&1; then
         log_success "Stowed: $pkg"
     else
         log_warn "Conflict stowing '$pkg' — run 'stow -t \$HOME -v --restow $pkg' to debug"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done
 

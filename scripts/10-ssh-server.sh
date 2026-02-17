@@ -48,6 +48,9 @@ X11Forwarding no
 KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256
 EOF
 
+# sshd -t requires /run/sshd to exist (normally created on first start)
+sudo mkdir -p /run/sshd
+
 # Validate config before restarting
 log_info "Validating SSH config..."
 if sudo sshd -t; then
