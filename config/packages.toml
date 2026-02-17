@@ -53,7 +53,6 @@ packages = [
     "btop",
     "tree",
     "ncdu",
-    "tealdeer",
 
     # Podman (rootless containers, available in Ubuntu repos)
     "podman",
