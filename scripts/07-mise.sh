@@ -42,5 +42,8 @@ export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG"
 log_info "Installing all tools from mise config (this may take a while)..."
 mise install --yes
 
+log_info "Regenerating mise shims..."
+mise reshim
+
 log_success "mise tools installed"
 log_info "Run 'mise ls' to see installed tools"
