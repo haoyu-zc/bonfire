@@ -193,13 +193,13 @@ alias gps="git push"
 alias glg="git log --oneline --graph --decorate --all"
 alias lg="lazygit"
 
-# Docker
-alias d="docker"
-alias dc="docker compose"
-alias dps="docker ps"
-alias dpsa="docker ps -a"
-alias di="docker images"
-alias dex="docker exec -it"
+# Podman (rootless, drop-in Docker replacement)
+alias d="podman"
+alias dc="podman-compose"
+alias dps="podman ps"
+alias dpsa="podman ps -a"
+alias di="podman images"
+alias dex="podman exec -it"
 
 # Utilities
 alias grep="grep --color=auto"

@@ -16,10 +16,6 @@ repo = "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main"
 key = "https://packages.microsoft.com/keys/microsoft.asc"
 repo = "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main"
 
-[apt.repos.docker]
-key = "https://download.docker.com/linux/ubuntu/gpg"
-repo = "deb [arch=amd64] https://download.docker.com/linux/ubuntu noble stable"
-
 [apt]
 packages = [
     # Build essentials
@@ -57,13 +53,12 @@ packages = [
     "btop",
     "tree",
     "ncdu",
+    "tealdeer",
 
-    # Docker (from docker repo)
-    "docker-ce",
-    "docker-ce-cli",
-    "containerd.io",
-    "docker-buildx-plugin",
-    "docker-compose-plugin",
+    # Podman (rootless containers, available in Ubuntu repos)
+    "podman",
+    "podman-compose",
+    "buildah",
 
     # From third-party repos
     "google-chrome-stable",
@@ -75,6 +70,7 @@ packages = [
 [flatpak]
 packages = [
     "md.obsidian.Obsidian",
+    "com.slack.Slack",
 ]
 
 # --- Homebrew ---
@@ -85,6 +81,7 @@ formulae = [
     "stow",
     "zsh-autosuggestions",
     "zsh-syntax-highlighting",
+    "tealdeer",
 ]
 
 # Casks: macOS only
@@ -97,4 +94,6 @@ casks = [
     "rectangle",
     "raycast",
     "karabiner-elements",
+    "slack",
+    "podman-desktop",
 ]
