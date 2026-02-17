@@ -16,10 +16,10 @@ check_cmd() {
     local cmd="${2:-$1}"
     if command_exists "$cmd"; then
         log_success "PASS: $name ($(command -v "$cmd"))"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_error "FAIL: $name not found"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -29,10 +29,10 @@ check_version() {
     local min_version="$3"
     if version_output="$($version_cmd 2>/dev/null | head -1)"; then
         log_success "PASS: $name ($version_output)"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_error "FAIL: $name — cannot get version"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 }
 
@@ -92,7 +92,7 @@ check_version "python version" "python3 --version" "3.12"
 # =============================================================================
 if [[ "$OS" == "linux" ]]; then
     log_info "Linux-specific tools..."
-    check_cmd "docker"
+    check_cmd "podman"
     check_cmd "flatpak"
     check_cmd "apt"
 

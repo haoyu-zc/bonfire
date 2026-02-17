@@ -12,9 +12,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-check_pass() { log_success "PASS: $1"; ((PASS++)); }
-check_fail() { log_error  "FAIL: $1"; ((FAIL++)); }
-check_warn() { log_warn   "WARN: $1"; ((WARN++)); }
+check_pass() { log_success "PASS: $1"; PASS=$((PASS + 1)); }
+check_fail() { log_error  "FAIL: $1"; FAIL=$((FAIL + 1)); }
+check_warn() { log_warn   "WARN: $1"; WARN=$((WARN + 1)); }
 
 check_cmd() {
     local name="$1"
@@ -39,14 +39,20 @@ check_file() {
 check_symlink() {
     local label="$1"
     local path="$2"
-    if [[ -L "$path" ]]; then
-        local target
-        target="$(readlink -f "$path")"
-        check_pass "$label is symlink -> $target"
-    elif [[ -e "$path" ]]; then
-        check_warn "$label exists but is NOT a symlink ($path)"
-    else
+    if [[ ! -e "$path" ]] && [[ ! -L "$path" ]]; then
         check_fail "$label missing ($path)"
+        return
+    fi
+    local resolved
+    resolved="$(realpath "$path" 2>/dev/null || echo "")"
+    # Pass if the resolved path lives inside this repo's dotfiles/
+    # (handles both direct symlinks and files under a symlinked parent dir)
+    if [[ "$resolved" == "$REPO_DIR/dotfiles/"* ]]; then
+        check_pass "$label -> $resolved"
+    elif [[ -L "$path" ]]; then
+        check_warn "$label symlink points outside repo ($resolved)"
+    else
+        check_warn "$label exists but is not managed by stow ($path)"
     fi
 }
 
@@ -59,15 +65,25 @@ check_cmd "git"
 check_cmd "stow"
 check_cmd "curl"
 check_cmd "mise"
-check_cmd "brew"
+if [[ "$OS" == "linux" ]]; then
+    if command_exists brew; then
+        check_pass "brew is available (optional on Linux)"
+    else
+        check_warn "brew not found (optional on Linux — GUI apps use apt/Flatpak)"
+    fi
+else
+    check_cmd "brew"
+fi
 
 # =============================================================================
 # mise-managed tools
 # =============================================================================
 log_info "Checking mise-managed tools..."
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 setup_homebrew_path
 if command_exists mise; then
+    # Ensure shims are up to date before checking
+    mise reshim 2>/dev/null || true
     eval "$(mise activate bash)" 2>/dev/null || true
 fi
 
@@ -94,21 +110,16 @@ check_symlink "lazygit config"   "$HOME/.config/lazygit/config.yml"
 if [[ "$OS" == "linux" ]]; then
     log_info "Checking Linux-specific items..."
 
-    # Docker
-    if command_exists docker; then
-        check_pass "docker available"
-        if sudo docker info &>/dev/null 2>&1; then
-            check_pass "docker daemon running"
+    # Podman
+    if command_exists podman; then
+        check_pass "podman available"
+        if podman info &>/dev/null 2>&1; then
+            check_pass "podman info succeeds (rootless)"
         else
-            check_warn "docker daemon not running (or needs sudo)"
-        fi
-        if groups "$USER" | grep -q docker; then
-            check_pass "user in docker group"
-        else
-            check_warn "user NOT in docker group (run 'sudo usermod -aG docker $USER')"
+            check_warn "podman info failed"
         fi
     else
-        check_fail "docker not found"
+        check_fail "podman not found"
     fi
 
     # Flatpak

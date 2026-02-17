@@ -19,21 +19,21 @@ check_symlink() {
 
     if [[ ! -e "$path" ]] && [[ ! -L "$path" ]]; then
         log_error "FAIL: $label — missing ($path)"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     elif [[ -L "$path" ]]; then
         actual_target="$(readlink -f "$path")"
         if [[ -n "$expected_target" ]] && [[ "$actual_target" != "$expected_target" ]]; then
             log_error "FAIL: $label — wrong target"
             log_error "       got:      $actual_target"
             log_error "       expected: $expected_target"
-            ((FAIL++))
+            FAIL=$((FAIL + 1))
         else
             log_success "PASS: $label -> $actual_target"
-            ((PASS++))
+            PASS=$((PASS + 1))
         fi
     else
         log_warn "WARN: $label — exists but is NOT a symlink (may conflict with stow)"
-        ((WARN++))
+        WARN=$((WARN + 1))
     fi
 }
 
@@ -67,10 +67,10 @@ EXPECTED_PKGS=(zsh git starship mise bat lazygit)
 for pkg in "${EXPECTED_PKGS[@]}"; do
     if [[ -d "$DOTFILES_DIR/$pkg" ]]; then
         log_success "PASS: package '$pkg' exists"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         log_error "FAIL: package '$pkg' missing from dotfiles/"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
     fi
 done
 
