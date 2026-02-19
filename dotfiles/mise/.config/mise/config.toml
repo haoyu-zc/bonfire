@@ -9,21 +9,21 @@
 node = "lts"
 python = "3.12"
 
-# CLI tools via github backend (pulls prebuilt binaries from GitHub releases)
-"github:junegunn/fzf"          = "latest"   # fuzzy finder
-"github:ajeetdsouza/zoxide"    = "latest"   # smarter cd
-"github:BurntSushi/ripgrep[exe=rg]" = "latest"  # fast grep (binary named rg inside archive)
-"github:sharkdp/bat"           = "latest"   # cat with syntax highlighting
-"github:sharkdp/fd"            = "latest"   # fast find
-"github:eza-community/eza"     = "latest"   # modern ls
-"github:dandavison/delta"      = "latest"   # better git diff
-"github:jesseduffield/lazygit" = "latest"   # terminal git UI
-"github:starship/starship"     = "latest"   # cross-shell prompt
+# CLI tools via ubi backend (pulls prebuilt binaries from GitHub releases)
+"ubi:junegunn/fzf"             = "latest"   # fuzzy finder
+"ubi:ajeetdsouza/zoxide"       = "latest"   # smarter cd
+"ubi:BurntSushi/ripgrep[exe=rg]" = "latest" # fast grep (binary named rg inside archive)
+"ubi:sharkdp/bat"              = "latest"   # cat with syntax highlighting
+"ubi:sharkdp/fd"               = "latest"   # fast find
+"ubi:eza-community/eza"        = "latest"   # modern ls
+"ubi:dandavison/delta"         = "latest"   # better git diff
+"ubi:jesseduffield/lazygit"    = "latest"   # terminal git UI
+"ubi:starship/starship"        = "latest"   # cross-shell prompt
 # tealdeer: installed via apt/brew (recent GitHub releases don't ship Linux binaries)
-"github:jqlang/jq"             = "latest"   # JSON processor
-"github:mikefarah/yq"          = "latest"   # YAML processor
-"github:astral-sh/uv"          = "latest"   # fast Python package manager
-"github:astral-sh/ruff"        = "latest"   # fast Python linter + formatter
+"ubi:jqlang/jq"                = "latest"   # JSON processor
+"ubi:mikefarah/yq"             = "latest"   # YAML processor
+"ubi:astral-sh/uv"             = "latest"   # fast Python package manager
+"ubi:astral-sh/ruff"           = "latest"   # fast Python linter + formatter
 
 [settings]
 # Always use the latest compatible version for each tool
