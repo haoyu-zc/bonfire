@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# _lib.sh — Shared utilities for machine-setup scripts
+# _lib.sh — Shared utilities for bonfire scripts
 # Sourced by all numbered scripts; never run directly.
 # =============================================================================
 

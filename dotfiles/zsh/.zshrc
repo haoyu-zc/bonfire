@@ -33,9 +33,9 @@ fi
 # Local binaries
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
 
-# machine-setup repo utilities
-export MACHINE_SETUP_DIR="$HOME/_workspace/projects/machine-setup"
-[[ -d "$MACHINE_SETUP_DIR/bin" ]] && export PATH="$MACHINE_SETUP_DIR/bin:$PATH"
+# bonfire repo utilities
+export BONFIRE_DIR="$HOME/_workspace/projects/bonfire"
+[[ -d "$BONFIRE_DIR/bin" ]] && export PATH="$BONFIRE_DIR/bin:$PATH"
 
 # =============================================================================
 # History
@@ -284,3 +284,32 @@ export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
 if command -v starship &>/dev/null; then
     eval "$(starship init zsh)"
 fi
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/haoyu/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/haoyu/miniforge3/etc/profile.d/conda.sh" ]; then
+        . "/home/haoyu/miniforge3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/haoyu/miniforge3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+
+# >>> mamba initialize >>>
+# !! Contents within this block are managed by 'mamba shell init' !!
+export MAMBA_EXE='/home/haoyu/miniforge3/bin/mamba';
+export MAMBA_ROOT_PREFIX='/home/haoyu/miniforge3';
+__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__mamba_setup"
+else
+    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+fi
+unset __mamba_setup
+# <<< mamba initialize <<<
