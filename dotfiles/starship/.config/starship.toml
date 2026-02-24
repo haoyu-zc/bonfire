@@ -23,6 +23,7 @@ $nodejs\
 $rust\
 $golang\
 $docker_context\
+$conda\
 $cmd_duration\
 $line_break\
 $character"""
@@ -40,8 +41,7 @@ vimcmd_symbol = "[❮](bold green)"
 # =============================================================================
 [directory]
 style = "bold cyan"
-truncation_length = 4
-truncate_to_repo = true
+truncation_length = 0
 read_only = " 󰌾"
 read_only_style = "red"
 
@@ -136,6 +136,15 @@ detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile"]
 # =============================================================================
 # Disabled modules
 # =============================================================================
+# =============================================================================
+# Conda
+# =============================================================================
+[conda]
+symbol = "🅒 "
+format = "[$symbol$environment]($style) "
+style = "bold green"
+ignore_base = false
+
 [package]
 disabled = true
 

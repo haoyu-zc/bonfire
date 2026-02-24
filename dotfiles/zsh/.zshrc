@@ -146,7 +146,7 @@ fi
 # zoxide — smarter cd
 # =============================================================================
 if command -v zoxide &>/dev/null; then
-    eval "$(zoxide init zsh --cmd cd)"
+    eval "$(zoxide init zsh)"
 fi
 
 # =============================================================================
@@ -284,6 +284,9 @@ export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
 if command -v starship &>/dev/null; then
     eval "$(starship init zsh)"
 fi
+
+# Let starship handle conda env display
+export CONDA_CHANGEPS1=false
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
