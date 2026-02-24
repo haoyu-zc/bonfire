@@ -8,3 +8,6 @@ setup.log
 .idea/
 .vscode/
 *.swp
+
+# Agents
+.claude/
