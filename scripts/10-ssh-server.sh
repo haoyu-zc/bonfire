@@ -30,7 +30,7 @@ fi
 # =============================================================================
 log_info "Writing SSH drop-in config to $DROP_IN..."
 sudo tee "$DROP_IN" > /dev/null <<'EOF'
-# Custom SSH server configuration — managed by machine-setup
+# Custom SSH server configuration — managed by bonfire
 # This file is loaded after /etc/ssh/sshd_config (override order)
 
 PermitRootLogin no

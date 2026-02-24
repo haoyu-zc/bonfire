@@ -1,5 +1,5 @@
 # =============================================================================
-# machine-setup Makefile
+# bonfire Makefile
 # =============================================================================
 
 SHELL := bash
@@ -104,7 +104,7 @@ shellcheck: ## Run shellcheck on all scripts
 
 .PHONY: help
 help: ## Show this help message
-	@printf "\n${BOLD}machine-setup${RESET} — Dev environment bootstrap\n\n"
+	@printf "\n${BOLD}bonfire${RESET} — Dev environment bootstrap\n\n"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} \
 		/^[a-zA-Z_0-9-]+:.*?##/ { printf "  ${BLUE}%-20s${RESET} %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n${BOLD}%s${RESET}\n", substr($$0, 5) }' $(MAKEFILE_LIST)

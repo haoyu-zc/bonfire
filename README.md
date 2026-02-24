@@ -1,12 +1,12 @@
-# machine-setup
+# bonfire
 
 Automated dev environment bootstrap for Pop!_OS / Ubuntu and macOS. One command installs everything.
 
 ## Quick Start
 
 ```bash
-git clone <your-repo-url> ~/./_workspace/projects/machine-setup
-cd ~/./_workspace/projects/machine-setup
+git clone <your-repo-url> ~/./_workspace/projects/bonfire
+cd ~/./_workspace/projects/bonfire
 bash bootstrap.sh
 ```
 
@@ -78,7 +78,7 @@ make test-services  # Check SSH, Docker, etc.
 ## Repo Structure
 
 ```
-machine-setup/
+bonfire/
 ├── bootstrap.sh              # Single entry point
 ├── Makefile                  # Convenience targets
 ├── config/

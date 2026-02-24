@@ -210,5 +210,5 @@ if [[ $FAIL -gt 0 ]]; then
 elif [[ $WARN -gt 0 ]]; then
     log_warn "Setup complete with warnings. Some optional items may need attention."
 else
-    log_success "All checks passed! Your machine setup is complete."
+    log_success "All checks passed! Your bonfire setup is complete."
 fi
