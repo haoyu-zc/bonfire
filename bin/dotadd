@@ -38,7 +38,7 @@ and restows so a symlink replaces the original file.
 Examples:
   dotadd zsh ~/.zshrc
   dotadd git ~/.gitconfig
-  dotadd starship ~/.config/starship/starship.toml
+  dotadd starship ~/.config/starship.toml
 
 Available packages:
 EOF
