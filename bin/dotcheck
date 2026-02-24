@@ -42,7 +42,7 @@ for pkg_dir in */; do
     printf "\n${C_BOLD}${C_BLUE}[%s]${C_RESET}\n" "$pkg"
 
     while IFS= read -r -d '' file; do
-        # file is like: ./zsh/.zshrc or ./starship/.config/starship/starship.toml
+        # file is like: ./zsh/.zshrc or ./starship/.config/starship.toml
         relpath="${file#./}"      # strip leading ./
         relpath="${relpath#$pkg/}" # strip package prefix -> .zshrc or .config/...
 
