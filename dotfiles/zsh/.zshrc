@@ -132,9 +132,7 @@ if command -v fzf &>/dev/null; then
     fi
 
     # fzf via mise puts it in PATH — activate key bindings
-    if command -v fzf &>/dev/null && [[ -z "$FZF_DEFAULT_COMMAND" ]]; then
-        eval "$(fzf --zsh 2>/dev/null)" || true
-    fi
+    eval "$(fzf --zsh 2>/dev/null)" || true
 
     export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --info=inline"
     export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
