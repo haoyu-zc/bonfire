@@ -76,6 +76,7 @@ check_cmd "jq"
 check_cmd "yq"
 check_cmd "uv"
 check_cmd "ruff"
+check_cmd "nvim"
 
 # =============================================================================
 # Language runtimes

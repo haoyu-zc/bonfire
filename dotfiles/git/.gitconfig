@@ -2,8 +2,8 @@
 	# Set these before committing:
 	#   git config --global user.name "Your Name"
 	#   git config --global user.email "you@example.com"
-	name = Your Name
-	email = you@example.com
+	name = Haoyu Zhang
+	email = haoyu_z@outlook.com
 
 [core]
 	pager = delta
