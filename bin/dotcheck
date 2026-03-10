@@ -1,26 +1,40 @@
 #!/usr/bin/env bash
 # =============================================================================
 # dotcheck — Show drift between stow packages and $HOME
-# Reports: missing files, wrong symlink targets, and non-symlink conflicts.
-# Usage: dotcheck [--fix]
+# Reports: missing files, wrong symlink targets, hardlinks, and non-symlink conflicts.
+# Usage: dotcheck [--fix] [--clean]
 # =============================================================================
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DOTFILES_DIR="$REPO_DIR/dotfiles"
 
-# Colors
-if [[ -t 1 ]]; then
-    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
-    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
-else
-    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
-fi
+# Source shared logging
+SCRIPTS_DIR="$REPO_DIR/scripts"
+# shellcheck source=../scripts/_lib.sh
+source "$SCRIPTS_DIR/_lib.sh"
 
-ok()      { printf "${C_GREEN}  OK       %s${C_RESET}\n" "$*"; }
-missing() { printf "${C_RED}  MISSING  %s${C_RESET}\n" "$*"; }
-wrong()   { printf "${C_YELLOW}  WRONG    %s${C_RESET}\n" "$*"; }
-notlink() { printf "${C_YELLOW}  NOT LINK %s${C_RESET}\n" "$*"; }
+# Display helpers unique to dotcheck
+ok()       { printf "${C_GREEN}  OK       %s${C_RESET}\n" "$*"; }
+missing()  { printf "${C_RED}  MISSING  %s${C_RESET}\n" "$*"; }
+wrong()    { printf "${C_YELLOW}  WRONG    %s${C_RESET}\n" "$*"; }
+notlink()  { printf "${C_YELLOW}  NOT LINK %s${C_RESET}\n" "$*"; }
+hardlink() { printf "${C_YELLOW}  HARDLINK %s${C_RESET}\n" "$*"; }
+
+# =============================================================================
+# --clean mode: remove .bak files from stow conflict backups
+# =============================================================================
+if [[ "${1:-}" == "--clean" ]]; then
+    echo "Finding .bak files from stow conflict backups..."
+    found=0
+    while IFS= read -r -d '' bakfile; do
+        echo "  rm $bakfile"
+        rm "$bakfile"
+        ((found++))
+    done < <(find "$HOME" -maxdepth 4 -name "*.bak" -newer "$DOTFILES_DIR" -print0 2>/dev/null)
+    echo "$found .bak file(s) removed."
+    exit 0
+fi
 
 ISSUES=0
 OK=0
@@ -54,7 +68,9 @@ for pkg_dir in */; do
             ((ISSUES++))
             if [[ $FIX_MODE -eq 1 ]]; then
                 echo "    Restowing $pkg..."
-                stow -t "$HOME" --restow "$pkg" 2>&1 | sed 's/^/    /'
+                if ! stow -t "$HOME" --restow "$pkg"; then
+                    echo "    WARNING: stow restow failed for $pkg"
+                fi
             fi
 
         elif [[ -L "$target" ]]; then
@@ -70,13 +86,20 @@ for pkg_dir in */; do
 
         else
             # Regular file — not managed by stow
-            notlink "~/$relpath (regular file, not a symlink — stow cannot manage)"
+            # Check if it's a hardlink to the expected file
+            if [[ "$(stat -c %i "$target")" == "$(stat -c %i "$expected")" ]]; then
+                hardlink "~/$relpath (hardlink to repo — should be symlink, restow to fix)"
+            else
+                notlink "~/$relpath (regular file, not a symlink — stow cannot manage)"
+            fi
             ((ISSUES++))
             if [[ $FIX_MODE -eq 1 ]]; then
                 echo "    Backing up and restowing..."
                 mv "$target" "${target}.bak"
                 echo "    Backed up to ${target}.bak"
-                stow -t "$HOME" --restow "$pkg" 2>&1 | sed 's/^/    /'
+                if ! stow -t "$HOME" --restow "$pkg"; then
+                    echo "    WARNING: stow restow failed for $pkg"
+                fi
             fi
         fi
     done < <(find "$pkg" -type f -print0)
@@ -97,6 +120,7 @@ else
     printf "${C_YELLOW}%d issue(s) found.${C_RESET}\n" "$ISSUES"
     if [[ $FIX_MODE -eq 0 ]]; then
         echo "Run 'dotcheck --fix' to attempt automatic fixes."
+        echo "Run 'dotcheck --clean' to remove .bak backup files."
         echo "Or run 'dotup' to pull latest and re-stow everything."
     fi
     exit 1

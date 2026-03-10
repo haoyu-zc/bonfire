@@ -12,18 +12,10 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DOTFILES_DIR="$REPO_DIR/dotfiles"
 
-# Colors
-if [[ -t 1 ]]; then
-    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
-    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
-else
-    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
-fi
-
-info()    { printf "${C_BLUE}${C_BOLD}==>%s${C_RESET}${C_BLUE} %s${C_RESET}\n" "" "$*"; }
-success() { printf "${C_GREEN}  ✓ %s${C_RESET}\n" "$*"; }
-warn()    { printf "${C_YELLOW}  ! %s${C_RESET}\n" "$*"; }
-die()     { printf "${C_RED}  ✗ %s${C_RESET}\n" "$*" >&2; exit 1; }
+# Source shared logging
+SCRIPTS_DIR="$REPO_DIR/scripts"
+# shellcheck source=../scripts/_lib.sh
+source "$SCRIPTS_DIR/_lib.sh"
 
 # =============================================================================
 # Usage check
@@ -53,16 +45,19 @@ FILEPATH="$(realpath "$2")"
 # Validate inputs
 # =============================================================================
 if [[ ! -e "$FILEPATH" ]]; then
-    die "File not found: $FILEPATH"
+    log_error "File not found: $FILEPATH"
+    exit 1
 fi
 
 if [[ -L "$FILEPATH" ]]; then
-    die "$FILEPATH is already a symlink — it may already be managed by stow"
+    log_error "$FILEPATH is already a symlink — it may already be managed by stow"
+    exit 1
 fi
 
 # Compute path relative to $HOME
 if [[ "$FILEPATH" != "$HOME"/* ]]; then
-    die "File must be under \$HOME ($HOME), got: $FILEPATH"
+    log_error "File must be under \$HOME ($HOME), got: $FILEPATH"
+    exit 1
 fi
 
 RELPATH="${FILEPATH#$HOME/}"
@@ -73,7 +68,7 @@ RELPATH="${FILEPATH#$HOME/}"
 PKG_DIR="$DOTFILES_DIR/$PKG"
 
 if [[ ! -d "$PKG_DIR" ]]; then
-    info "Creating new stow package: $PKG"
+    log_info "Creating new stow package: $PKG"
     mkdir -p "$PKG_DIR"
 fi
 
@@ -84,35 +79,37 @@ DEST_DIR="$(dirname "$DEST")"
 # Check for conflicts
 # =============================================================================
 if [[ -e "$DEST" ]]; then
-    die "Destination already exists in stow package: $DEST"
+    log_error "Destination already exists in stow package: $DEST"
+    exit 1
 fi
 
 # =============================================================================
 # Move file into stow package
 # =============================================================================
-info "Moving $FILEPATH -> $DEST"
+log_info "Moving $FILEPATH -> $DEST"
 mkdir -p "$DEST_DIR"
 mv "$FILEPATH" "$DEST"
-success "Moved file into '$PKG' package"
+log_success "Moved file into '$PKG' package"
 
 # =============================================================================
 # Re-stow the package (creates the symlink)
 # =============================================================================
-info "Restowing '$PKG'..."
+log_info "Restowing '$PKG'..."
 cd "$DOTFILES_DIR"
 if stow -t "$HOME" --restow "$PKG"; then
-    success "Stowed '$PKG' — symlink created at ~/$RELPATH"
+    log_success "Stowed '$PKG' — symlink created at ~/$RELPATH"
 else
-    warn "Stow encountered a conflict. Rolling back..."
+    log_warn "Stow encountered a conflict. Rolling back..."
     mv "$DEST" "$FILEPATH"
-    die "Stow failed — original file restored. Check for conflicts."
+    log_error "Stow failed — original file restored. Check for conflicts."
+    exit 1
 fi
 
 # =============================================================================
 # Summary
 # =============================================================================
 echo ""
-success "Done! ~/$RELPATH is now managed by stow (package: $PKG)"
+log_success "Done! ~/$RELPATH is now managed by stow (package: $PKG)"
 echo ""
 echo "To commit this change:"
 echo "  cd $REPO_DIR"
