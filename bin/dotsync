@@ -20,8 +20,16 @@ log_section "Git Pull"
 
 cd "$REPO_DIR"
 if git remote get-url origin &>/dev/null; then
-    git pull --rebase
-    log_success "Repository up to date"
+    if ! git pull --rebase; then
+        if [[ -d "$REPO_DIR/.git/rebase-merge" || -d "$REPO_DIR/.git/rebase-apply" ]]; then
+            git rebase --abort
+            log_warn "Rebase conflict detected — aborted. Resolve manually with: git pull --rebase"
+        else
+            log_warn "git pull failed — check network or repo state"
+        fi
+    else
+        log_success "Repository up to date"
+    fi
 else
     log_warn "No remote configured — skipping git pull"
 fi
@@ -58,12 +66,16 @@ printf "\n"
 # =============================================================================
 log_section "Package Scripts"
 
+SCRIPT_ERRORS=0
 run_script() {
     local script="$1"
     local path="$SCRIPTS_DIR/$script"
     if [[ -f "$path" ]]; then
         log_info "Running $script..."
-        bash "$path"
+        if ! bash "$path"; then
+            log_warn "$script failed — continuing"
+            SCRIPT_ERRORS=$(( SCRIPT_ERRORS + 1 ))
+        fi
     else
         log_warn "$script not found — skipping"
     fi
@@ -92,4 +104,10 @@ fi
 # Done
 # =============================================================================
 echo ""
-log_success "Full sync complete. Restart your shell to pick up changes."
+if [[ $SCRIPT_ERRORS -gt 0 ]]; then
+    log_warn "Full sync complete with $SCRIPT_ERRORS script failure(s). Review warnings above."
+    log_warn "Restart your shell to pick up changes."
+    exit 1
+else
+    log_success "Full sync complete. Restart your shell to pick up changes."
+fi
