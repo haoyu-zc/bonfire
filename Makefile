@@ -91,6 +91,10 @@ log: ## Show the last 50 lines of the setup log
 clean-log: ## Remove the setup log
 	@rm -f setup.log && echo "setup.log removed"
 
+.PHONY: clean-bak
+clean-bak: ## Remove .bak files from stow conflict backups
+	@bin/dotcheck --clean
+
 .PHONY: shellcheck
 shellcheck: ## Run shellcheck on all scripts
 	@if command -v shellcheck &>/dev/null; then \
