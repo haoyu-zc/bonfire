@@ -9,6 +9,9 @@
 node = "lts"
 python = "3.12"
 
+# Editors
+neovim = "stable"
+
 # CLI tools via ubi backend (pulls prebuilt binaries from GitHub releases)
 "ubi:junegunn/fzf"             = "latest"   # fuzzy finder
 "ubi:ajeetdsouza/zoxide"       = "latest"   # smarter cd

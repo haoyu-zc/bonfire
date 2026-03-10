@@ -33,6 +33,7 @@ bash bootstrap.sh --yes
 All installed cross-platform via [mise](https://mise.jdx.dev/):
 
 - **Runtimes**: Node LTS, Python 3.12
+- **Editor**: Neovim (with [LazyVim](https://www.lazyvim.org/))
 - **Shell tools**: fzf, zoxide, ripgrep, bat, fd, eza, delta
 - **Git**: lazygit, delta
 - **Prompt**: starship
@@ -110,7 +111,8 @@ bonfire/
 │   ├── starship/
 │   ├── mise/
 │   ├── bat/
-│   └── lazygit/
+│   ├── lazygit/
+│   └── nvim/                 # Neovim + LazyVim config
 └── tests/
     ├── test-commands.sh
     ├── test-dotfiles.sh

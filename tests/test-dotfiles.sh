@@ -63,7 +63,7 @@ done
 # Check that stow packages exist in dotfiles/
 # =============================================================================
 log_info "Checking expected stow packages exist..."
-EXPECTED_PKGS=(zsh git starship mise bat lazygit)
+EXPECTED_PKGS=(zsh git starship mise bat lazygit nvim)
 for pkg in "${EXPECTED_PKGS[@]}"; do
     if [[ -d "$DOTFILES_DIR/$pkg" ]]; then
         log_success "PASS: package '$pkg' exists"

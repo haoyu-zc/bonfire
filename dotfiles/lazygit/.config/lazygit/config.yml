@@ -24,55 +24,43 @@ gui:
       - red
     defaultFgColor:
       - default
-
   # Layout
   showFileTree: true
   showListFooter: true
   showRandomTip: false
   showCommandLog: true
   commandLogSize: 8
-
   # Scrolling
   mouseEvents: true
   scrollHeight: 2
   scrollPastBottom: true
-
   # Time format
   timeFormat: "2006-01-02"
   shortTimeFormat: "3:04PM"
-
   # Borders
   border: "rounded"
-
   # Nerd font icons (set to 2 if using Nerd Fonts v3)
   nerdFontsVersion: "3"
-
 git:
-  paging:
-    colorArg: always
-    pager: delta --paging=never
-
+  pagers:
+    - colorArg: always
+      pager: delta --paging=never
   # Commits
   commit:
     signOff: false
     autoWrapCommitMessage: true
     autoWrapWidth: 72
-
   # Merging
   merging:
     manualCommit: false
-
   # Auto-fetch
   autoFetch: true
   autoRefresh: true
   fetchAll: true
-
   # Branch log
   branchLogCmd: "git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName}} --"
-
   # Skip hooks when stashing (so wip commits don't trigger linters)
   skipHookPrefix: wip
-
 keybinding:
   universal:
     quit: q
@@ -80,19 +68,15 @@ keybinding:
     return: <esc>
     openRecentRepos: <c-r>
     scrollUpMain: <pgup>
-    scrollDownMain: <pgdn>
+    scrollDownMain: <pgdown>
     filteringMenu: <c-s>
-
   files:
     ignoreFile: i
-
   branches:
     createPullRequest: o
-
 os:
   # Open in VSCode
   editCommand: code
   editCommandTemplate: "{{editor}} --wait {{filename}}"
   openCommand: xdg-open
-
 promptToReturnFromSubprocess: false

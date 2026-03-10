@@ -87,7 +87,7 @@ if command_exists mise; then
     eval "$(mise activate bash)" 2>/dev/null || true
 fi
 
-for tool in node python fzf zoxide rg bat fd eza delta lazygit starship tldr jq yq uv ruff; do
+for tool in node python nvim fzf zoxide rg bat fd eza delta lazygit starship tldr jq yq uv ruff; do
     check_cmd "$tool"
 done
 
@@ -103,6 +103,7 @@ check_symlink "starship.toml"    "$HOME/.config/starship.toml"
 check_symlink "mise config"      "$HOME/.config/mise/config.toml"
 check_symlink "bat config"       "$HOME/.config/bat/config"
 check_symlink "lazygit config"   "$HOME/.config/lazygit/config.yml"
+check_symlink "nvim config"      "$HOME/.config/nvim/init.lua"
 
 # =============================================================================
 # Platform-specific checks
