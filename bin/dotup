@@ -12,36 +12,36 @@ if [[ "${1:-}" == "--full" ]]; then
     exec "$REPO_DIR/bin/dotsync"
 fi
 
-# Colors
-if [[ -t 1 ]]; then
-    C_RESET='\033[0m'; C_GREEN='\033[32m'; C_BLUE='\033[34m'
-    C_YELLOW='\033[33m'; C_RED='\033[31m'; C_BOLD='\033[1m'
-else
-    C_RESET=''; C_GREEN=''; C_BLUE=''; C_YELLOW=''; C_RED=''; C_BOLD=''
-fi
-
-info()    { printf "${C_BLUE}${C_BOLD}==>%s${C_RESET}${C_BLUE} %s${C_RESET}\n" "" "$*"; }
-success() { printf "${C_GREEN}  ✓ %s${C_RESET}\n" "$*"; }
-warn()    { printf "${C_YELLOW}  ! %s${C_RESET}\n" "$*"; }
-error()   { printf "${C_RED}  ✗ %s${C_RESET}\n" "$*"; }
+# Source shared logging
+SCRIPTS_DIR="$REPO_DIR/scripts"
+# shellcheck source=../scripts/_lib.sh
+source "$SCRIPTS_DIR/_lib.sh"
 
 # =============================================================================
 # Pull latest changes
 # =============================================================================
-info "Pulling latest changes from remote..."
+log_info "Pulling latest changes from remote..."
 cd "$REPO_DIR"
 
 if git remote get-url origin &>/dev/null; then
-    git pull --rebase
-    success "Repository up to date"
+    if ! git pull --rebase; then
+        if [[ -d "$REPO_DIR/.git/rebase-merge" || -d "$REPO_DIR/.git/rebase-apply" ]]; then
+            git rebase --abort
+            log_warn "Rebase conflict detected — aborted. Resolve manually with: git pull --rebase"
+        else
+            log_warn "git pull failed — check network or repo state"
+        fi
+    else
+        log_success "Repository up to date"
+    fi
 else
-    warn "No remote configured — skipping git pull"
+    log_warn "No remote configured — skipping git pull"
 fi
 
 # =============================================================================
 # Re-stow all dotfile packages
 # =============================================================================
-info "Re-stowing dotfiles..."
+log_info "Re-stowing dotfiles..."
 cd "$REPO_DIR/dotfiles"
 ERRORS=0
 STOWED=0
@@ -51,10 +51,10 @@ for pkg_dir in */; do
     [[ -z "$pkg" ]] && continue
 
     if stow -t "$HOME" --restow "$pkg" 2>&1; then
-        success "$pkg"
+        log_success "$pkg"
         STOWED=$(( STOWED + 1 ))
     else
-        warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
+        log_warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
         ERRORS=$(( ERRORS + 1 ))
     fi
 done
@@ -62,12 +62,12 @@ done
 # =============================================================================
 # Update mise tools
 # =============================================================================
-info "Running mise install..."
+log_info "Running mise install..."
 if command -v mise &>/dev/null; then
     mise install
-    success "mise tools up to date"
+    log_success "mise tools up to date"
 else
-    warn "mise not found — skipping"
+    log_warn "mise not found — skipping"
 fi
 
 # =============================================================================
@@ -79,7 +79,7 @@ printf "${C_BOLD}Summary:${C_RESET} %d stowed" "$STOWED"
 printf "\n"
 
 if [[ $ERRORS -gt 0 ]]; then
-    warn "Run 'dotcheck' to see all issues"
+    log_warn "Run 'dotcheck' to see all issues"
 fi
 
 echo ""
