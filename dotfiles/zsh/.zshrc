@@ -33,9 +33,16 @@ fi
 # Local binaries
 [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
 
-# bonfire repo utilities
-export BONFIRE_DIR="$HOME/_workspace/projects/bonfire"
-[[ -d "$BONFIRE_DIR/bin" ]] && export PATH="$BONFIRE_DIR/bin:$PATH"
+# bonfire repo utilities — auto-derive BONFIRE_DIR from this file's symlink target.
+# Uses zsh's :A modifier (resolves symlinks) instead of `readlink -f` (GNU-only).
+# Only the symlink branch is safe: a non-stowed real-file copy of .zshrc would
+# leave :h:h:h walking up to `/`, which the PATH guard below would then accept.
+__zshrc_path="${(%):-%N}"
+if [[ -L "$__zshrc_path" ]]; then
+    export BONFIRE_DIR="${__zshrc_path:A:h:h:h}"  # zsh/ -> dotfiles/ -> repo root
+fi
+unset __zshrc_path
+[[ -n "${BONFIRE_DIR:-}" && -d "$BONFIRE_DIR/bin" ]] && export PATH="$BONFIRE_DIR/bin:$PATH"
 
 # =============================================================================
 # History
