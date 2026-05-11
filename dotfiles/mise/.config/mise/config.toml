@@ -2,6 +2,15 @@
 # mise global configuration
 # https://mise.jdx.dev/
 # Manages dev tool versions across all projects.
+#
+# Pinning strategy:
+# - Shell-facing tools (starship, fzf, zoxide, eza, bat) are pinned to majors
+#   so that a year-from-now bootstrap doesn't pull a breaking 2.0 and silently
+#   change shell behavior.
+# - Fast-moving / mature tools (ruff, uv, gh, jq, yq, lazygit, delta, ripgrep,
+#   fd, zellij, git-lfs) stay on "latest" — low regression risk + you want fixes.
+# - When adding a new ubi: entry with a major pin, smoke-test `mise install`
+#   once to confirm the project's release tag format parses cleanly.
 # =============================================================================
 
 [tools]
@@ -13,15 +22,15 @@ python = "3.12"
 neovim = "stable"
 
 # CLI tools via ubi backend (pulls prebuilt binaries from GitHub releases)
-"ubi:junegunn/fzf"             = "latest"   # fuzzy finder
-"ubi:ajeetdsouza/zoxide"       = "latest"   # smarter cd
+"ubi:junegunn/fzf"             = "0"        # fuzzy finder
+"ubi:ajeetdsouza/zoxide"       = "0"        # smarter cd
 "ubi:BurntSushi/ripgrep[exe=rg]" = "latest" # fast grep (binary named rg inside archive)
-"ubi:sharkdp/bat"              = "latest"   # cat with syntax highlighting
+"ubi:sharkdp/bat"              = "0"        # cat with syntax highlighting
 "ubi:sharkdp/fd"               = "latest"   # fast find
-"ubi:eza-community/eza"        = "latest"   # modern ls
+"ubi:eza-community/eza"        = "0"        # modern ls
 "ubi:dandavison/delta"         = "latest"   # better git diff
 "ubi:jesseduffield/lazygit"    = "latest"   # terminal git UI
-"ubi:starship/starship"        = "latest"   # cross-shell prompt
+"ubi:starship/starship"        = "1"        # cross-shell prompt
 # tealdeer: installed via apt/brew (recent GitHub releases don't ship Linux binaries)
 "ubi:jqlang/jq"                = "latest"   # JSON processor
 "ubi:mikefarah/yq"             = "latest"   # YAML processor
@@ -30,6 +39,18 @@ neovim = "stable"
 git-lfs = "latest"
 zellij = "latest"
 gh = "latest"
+
+# Modern coreutils replacements
+"ubi:dalance/procs"            = "0"        # ps replacement
+"ubi:bootandy/dust"            = "1"        # du replacement
+"ubi:muesli/duf"               = "0"        # df replacement
+"ubi:aristocratos/btop"        = "1"        # top replacement
+"ubi:chmln/sd"                 = "1"        # sed for simple substitutions
+"ubi:sharkdp/hyperfine"        = "1"        # CLI benchmarking
+
+# File manager and TUI helpers
+"ubi:sxyazi/yazi"              = "0"        # file manager (paired with y() in .zshrc)
+"ubi:charmbracelet/gum"        = "0"        # TUI prompts/spinners for shell scripts
 
 [settings]
 # Always use the latest compatible version for each tool
