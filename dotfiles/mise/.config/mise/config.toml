@@ -29,6 +29,7 @@ neovim = "stable"
 "ubi:astral-sh/ruff"           = "latest"   # fast Python linter + formatter
 git-lfs = "latest"
 zellij = "latest"
+gh = "latest"
 
 [settings]
 # Always use the latest compatible version for each tool
