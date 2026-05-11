@@ -58,6 +58,57 @@ tools (`ruff`, `uv`, `gh`) stay on `"latest"` to get fixes.
 > tealdeer's GitHub releases (the apt-packaged version 1.6.1 has a
 > hardcoded broken cache URL).
 
+### apt packages (Linux)
+
+Defined in `config/packages.toml [apt] packages`. Two third-party apt repos
+(`[apt.repos.google-chrome]`, `[apt.repos.vscode]`) are wired in
+`scripts/03-apt-repos.sh` before install.
+
+- **Build essentials**: build-essential, curl, wget, git, stow, unzip, zip,
+  ca-certificates, gnupg, software-properties-common
+- **Clipboard**: xclip, wl-clipboard
+- **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
+- **Dev libraries** (for compiling Python etc.): libssl-dev, libffi-dev,
+  zlib1g-dev, libreadline-dev, libsqlite3-dev, libncursesw5-dev, liblzma-dev
+- **System tools**: htop, btop, tree, ncdu
+- **Containers**: podman, podman-compose, buildah
+- **From third-party repos**: google-chrome-stable, code (VS Code)
+
+### Flatpak apps (Linux)
+
+Defined in `config/packages.toml [flatpak] packages`. Flathub remote is
+added automatically by `scripts/05-flatpak.sh`.
+
+- Obsidian (`md.obsidian.Obsidian`)
+- Slack (`com.slack.Slack`)
+
+### AppImages (Linux)
+
+Defined in `config/appimages.toml`. Each AppImage is downloaded into
+`~/.local/share/AppImages/`, made executable, and given a `.desktop` entry by
+`scripts/06-appimages.sh`.
+
+- Snipaste — screenshot + annotation tool (`2.11.3-x86_64`)
+
+### Homebrew formulae (Linux + macOS)
+
+Defined in `config/packages.toml [brew] formulae`. Installed by
+`scripts/02-homebrew.sh` on both platforms.
+
+- stow, zsh-autosuggestions, zsh-syntax-highlighting, tealdeer
+
+### Homebrew casks (macOS only)
+
+Defined in `config/packages.toml [brew] casks`.
+
+- **Browsers**: google-chrome
+- **Editors**: visual-studio-code, obsidian
+- **Productivity**: raycast, rectangle, slack
+- **Screenshot**: snipaste
+- **Terminal**: wezterm
+- **Keyboard remap**: karabiner-elements
+- **Containers**: podman-desktop
+
 ## Usage
 
 ### Full setup
