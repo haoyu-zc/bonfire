@@ -56,6 +56,31 @@ backup_conflicts() {
 }
 
 # =============================================================================
+# Pre-flight: surface drift before silently backing real files up to *.bak
+# `dotcheck` exits 1 on any drift (missing symlinks OR real-file conflicts).
+# Wrap in `if !` so a non-zero exit doesn't trip set -e — non-zero here just
+# means "stowing has work to do," not "fatal."
+# =============================================================================
+if command_exists stow && [[ -x "$REPO_DIR/bin/dotcheck" ]]; then
+    log_info "Pre-flight drift report:"
+    if ! "$REPO_DIR/bin/dotcheck" >&2; then
+        if [[ "${AUTO_YES:-0}" -eq 0 ]]; then
+            printf -- '%bProceed with stow (real-file conflicts will be backed up to *.bak)? [y/N] %b' \
+                "$C_YELLOW" "$C_RESET"
+            # `read` returns non-zero on closed stdin (e.g., script piped from
+            # a non-tty); guard so set -e doesn't abort before we can default.
+            if ! read -r answer; then answer=""; fi
+            if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+                log_error "Aborted at dotcheck pre-flight."
+                exit 1
+            fi
+        else
+            log_warn "Proceeding past drift in --yes mode"
+        fi
+    fi
+fi
+
+# =============================================================================
 # Stow each dotfile package
 # =============================================================================
 log_info "Stowing dotfile packages from $DOTFILES_DIR..."

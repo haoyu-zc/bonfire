@@ -65,6 +65,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 export DRY_RUN
+export AUTO_YES
 
 # =============================================================================
 # Collect scripts
