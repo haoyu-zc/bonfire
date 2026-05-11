@@ -39,8 +39,8 @@ check_service_enabled() {
 check_port_listening() {
     local name="$1"
     local port="$2"
-    if ss -tlnp 2>/dev/null | grep -q ":${port} " || \
-       netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
+    if ss -tlnp 2>/dev/null | grep -q ":${port} " \
+        || netstat -tlnp 2>/dev/null | grep -q ":${port} "; then
         log_success "PASS: $name is listening on port $port"
         PASS=$((PASS + 1))
     else

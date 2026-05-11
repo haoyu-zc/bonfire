@@ -26,7 +26,6 @@ check_cmd() {
 check_version() {
     local name="$1"
     local version_cmd="$2"
-    local min_version="$3"
     if version_output="$($version_cmd 2>/dev/null | head -1)"; then
         log_success "PASS: $name ($version_output)"
         PASS=$((PASS + 1))
@@ -83,10 +82,10 @@ check_cmd "nvim"
 # =============================================================================
 log_info "Language runtimes..."
 check_cmd "node"
-check_version "node version" "node --version" "18"
+check_version "node version" "node --version"
 check_cmd "npm"
 check_cmd "python3"
-check_version "python version" "python3 --version" "3.12"
+check_version "python version" "python3 --version"
 
 # =============================================================================
 # Platform-specific tools

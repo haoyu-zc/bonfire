@@ -6,7 +6,10 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
-[[ "$OS" == "linux" ]] || { log_info "Skipping apt repos setup (not Linux)"; exit 0; }
+[[ "$OS" == "linux" ]] || {
+    log_info "Skipping apt repos setup (not Linux)"
+    exit 0
+}
 
 log_section "APT Repositories"
 check_not_root
@@ -51,9 +54,9 @@ add_apt_repo() {
         # Already has bracket options — inject signed-by=
         local modified_line
         modified_line="$(echo "$repo_line" | sed "s|\[|\[signed-by=$keyring_path |")"
-        echo "$modified_line" | sudo tee "$sources_path" > /dev/null
+        echo "$modified_line" | sudo tee "$sources_path" >/dev/null
     else
-        echo "$repo_line" | sudo tee "$sources_path" > /dev/null
+        echo "$repo_line" | sudo tee "$sources_path" >/dev/null
     fi
 
     log_success "repo: $name added"

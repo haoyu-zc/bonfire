@@ -43,7 +43,7 @@ DOTFILES_DIR="$REPO_DIR/dotfiles"
 # Check each file managed by stow
 # =============================================================================
 log_info "Checking stow-managed dotfiles..."
-cd "$DOTFILES_DIR"
+cd "$DOTFILES_DIR" || exit 1
 
 for pkg_dir in */; do
     pkg="${pkg_dir%/}"
@@ -52,9 +52,10 @@ for pkg_dir in */; do
 
     while IFS= read -r -d '' file; do
         relpath="${file#./}"
-        relpath="${relpath#$pkg/}"
+        relpath="${relpath#"$pkg"/}"
         expected="$DOTFILES_DIR/$pkg/$relpath"
         target="$HOME/$relpath"
+        # shellcheck disable=SC2088  # display label, not a path
         check_symlink "~/$relpath" "$target" "$expected"
     done < <(find "$pkg" -type f -print0)
 done

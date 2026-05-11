@@ -6,7 +6,10 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
-[[ "$OS" == "linux" ]] || { log_info "Skipping AppImages (not Linux)"; exit 0; }
+[[ "$OS" == "linux" ]] || {
+    log_info "Skipping AppImages (not Linux)"
+    exit 0
+}
 
 log_section "AppImages"
 check_not_root
@@ -64,7 +67,7 @@ install_appimage() {
             icon_ref="$key"
         fi
 
-        cat > "$desktop_file" <<EOF
+        cat >"$desktop_file" <<EOF
 [Desktop Entry]
 Name=$name
 Exec=$appimage_path --no-sandbox

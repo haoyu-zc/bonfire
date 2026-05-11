@@ -19,9 +19,9 @@ detect_os() {
             # shellcheck source=/dev/null
             source /etc/os-release
             case "${ID:-}" in
-                pop)    DISTRO="pop" ;;
+                pop) DISTRO="pop" ;;
                 ubuntu) DISTRO="ubuntu" ;;
-                *)      DISTRO="${ID:-unknown}" ;;
+                *) DISTRO="${ID:-unknown}" ;;
             esac
         else
             DISTRO="unknown"
@@ -69,14 +69,14 @@ _log() {
     # Print to stdout with color
     printf "${color}${C_BOLD}${prefix}${C_RESET}${color} %s${C_RESET}\n" "$msg"
     # Append plain text to log file
-    printf '[%s] [%s] %s\n' "$timestamp" "$level" "$msg" >> "$LOG_FILE"
+    printf '[%s] [%s] %s\n' "$timestamp" "$level" "$msg" >>"$LOG_FILE"
 }
 
-log_info()    { _log "INFO"    "$C_BLUE"   "==>" "$@"; }
-log_success() { _log "OK"      "$C_GREEN"  "  ✓" "$@"; }
-log_warn()    { _log "WARN"    "$C_YELLOW" "  !" "$@"; }
-log_error()   { _log "ERROR"   "$C_RED"    "  ✗" "$@"; }
-log_step()    { _log "STEP"    "$C_CYAN"   "---" "$@"; }
+log_info() { _log "INFO" "$C_BLUE" "==>" "$@"; }
+log_success() { _log "OK" "$C_GREEN" "  ✓" "$@"; }
+log_warn() { _log "WARN" "$C_YELLOW" "  !" "$@"; }
+log_error() { _log "ERROR" "$C_RED" "  ✗" "$@"; }
+log_step() { _log "STEP" "$C_CYAN" "---" "$@"; }
 
 # Print a section header
 log_section() {
@@ -85,7 +85,7 @@ log_section() {
     printf "\n${C_BOLD}${C_BLUE}%s${C_RESET}\n" "$line"
     printf "${C_BOLD}${C_BLUE}  %s${C_RESET}\n" "$title"
     printf "${C_BOLD}${C_BLUE}%s${C_RESET}\n\n" "$line"
-    printf '\n[SECTION] %s\n' "$title" >> "$LOG_FILE"
+    printf '\n[SECTION] %s\n' "$title" >>"$LOG_FILE"
 }
 
 # =============================================================================

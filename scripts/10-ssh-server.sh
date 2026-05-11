@@ -7,7 +7,10 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
-[[ "$OS" == "linux" ]] || { log_info "Skipping SSH server config (not Linux)"; exit 0; }
+[[ "$OS" == "linux" ]] || {
+    log_info "Skipping SSH server config (not Linux)"
+    exit 0
+}
 
 log_section "SSH Server"
 check_not_root
@@ -29,7 +32,7 @@ fi
 # Write drop-in config
 # =============================================================================
 log_info "Writing SSH drop-in config to $DROP_IN..."
-sudo tee "$DROP_IN" > /dev/null <<'EOF'
+sudo tee "$DROP_IN" >/dev/null <<'EOF'
 # Custom SSH server configuration — managed by bonfire
 # This file is loaded after /etc/ssh/sshd_config (override order)
 
@@ -79,6 +82,7 @@ chmod 700 "$HOME/.ssh"
 
 if [[ -f "$HOME/.ssh/authorized_keys" ]]; then
     chmod 600 "$HOME/.ssh/authorized_keys"
+    # shellcheck disable=SC2088  # display label, not a path
     log_success "~/.ssh/authorized_keys permissions set"
 else
     touch "$HOME/.ssh/authorized_keys"

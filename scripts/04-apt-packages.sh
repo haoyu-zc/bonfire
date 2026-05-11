@@ -6,7 +6,10 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
-[[ "$OS" == "linux" ]] || { log_info "Skipping apt packages (not Linux)"; exit 0; }
+[[ "$OS" == "linux" ]] || {
+    log_info "Skipping apt packages (not Linux)"
+    exit 0
+}
 
 log_section "APT Packages"
 check_not_root

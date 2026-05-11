@@ -20,9 +20,12 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
-        # Scope to our bash files; pre-commit's shellcheck-py defaults are fine.
+        # Scope to our bash files; --severity=warning drops info-level noise
+        # (SC1091 source-not-following, SC2012 ls-vs-find, SC2295 pattern-in-expansion)
+        # while still catching real bugs (SC2088 tilde, SC2164 cd-no-exit, SC2034).
         files: ^(bootstrap\.sh|bin/.*|scripts/.*\.sh|tests/.*\.sh)$
         types: [text]
+        args: ["--severity=warning"]
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-2

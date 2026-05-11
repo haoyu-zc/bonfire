@@ -2,6 +2,8 @@
 # =============================================================================
 # 12-verify.sh — Run all checks and print a summary (both platforms)
 # =============================================================================
+# shellcheck disable=SC2088
+# (Tilde labels in check_symlink calls are display-only strings, not paths.)
 
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
@@ -12,9 +14,18 @@ PASS=0
 FAIL=0
 WARN=0
 
-check_pass() { log_success "PASS: $1"; PASS=$((PASS + 1)); }
-check_fail() { log_error  "FAIL: $1"; FAIL=$((FAIL + 1)); }
-check_warn() { log_warn   "WARN: $1"; WARN=$((WARN + 1)); }
+check_pass() {
+    log_success "PASS: $1"
+    PASS=$((PASS + 1))
+}
+check_fail() {
+    log_error "FAIL: $1"
+    FAIL=$((FAIL + 1))
+}
+check_warn() {
+    log_warn "WARN: $1"
+    WARN=$((WARN + 1))
+}
 
 check_cmd() {
     local name="$1"
@@ -95,15 +106,15 @@ done
 # Dotfile symlinks
 # =============================================================================
 log_info "Checking dotfile symlinks..."
-check_symlink "~/.zshrc"         "$HOME/.zshrc"
-check_symlink "~/.zshenv"        "$HOME/.zshenv"
-check_symlink "~/.gitconfig"     "$HOME/.gitconfig"
+check_symlink "~/.zshrc" "$HOME/.zshrc"
+check_symlink "~/.zshenv" "$HOME/.zshenv"
+check_symlink "~/.gitconfig" "$HOME/.gitconfig"
 check_symlink "~/.gitignore_global" "$HOME/.gitignore_global"
-check_symlink "starship.toml"    "$HOME/.config/starship.toml"
-check_symlink "mise config"      "$HOME/.config/mise/config.toml"
-check_symlink "bat config"       "$HOME/.config/bat/config"
-check_symlink "lazygit config"   "$HOME/.config/lazygit/config.yml"
-check_symlink "nvim config"      "$HOME/.config/nvim/init.lua"
+check_symlink "starship.toml" "$HOME/.config/starship.toml"
+check_symlink "mise config" "$HOME/.config/mise/config.toml"
+check_symlink "bat config" "$HOME/.config/bat/config"
+check_symlink "lazygit config" "$HOME/.config/lazygit/config.yml"
+check_symlink "nvim config" "$HOME/.config/nvim/init.lua"
 
 # =============================================================================
 # Platform-specific checks

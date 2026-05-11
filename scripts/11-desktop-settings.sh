@@ -47,7 +47,7 @@ if [[ "$OS" == "linux" ]]; then
     if [[ "${write_cosmic_xkb:-0}" == "1" ]]; then
         # Write a fresh minimal xkb config with our swap
         # COSMIC uses RON format for its config files
-        cat > "$XKB_CONFIG_FILE" <<'EOF'
+        cat >"$XKB_CONFIG_FILE" <<'EOF'
 (
     rules: None,
     model: None,
@@ -95,7 +95,7 @@ if [[ "$OS" == "darwin" ]]; then
         log_success "LaunchAgent for key remapping already exists"
     else
         log_info "Creating persistent LaunchAgent for key remapping..."
-        cat > "$LAUNCH_AGENT_PLIST" <<'EOF'
+        cat >"$LAUNCH_AGENT_PLIST" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -128,7 +128,7 @@ EOF
     defaults write com.apple.finder AppleShowAllExtensions -bool true
     defaults write com.apple.finder ShowPathbar -bool true
     defaults write com.apple.finder ShowStatusBar -bool true
-    defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"  # list view
+    defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv" # list view
 
     # Dock: auto-hide, smaller size
     defaults write com.apple.dock autohide -bool true

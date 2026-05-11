@@ -49,10 +49,10 @@ for pkg_dir in */; do
 
     if stow -t "$HOME" --restow "$pkg" 2>&1; then
         log_success "$pkg"
-        STOWED=$(( STOWED + 1 ))
+        STOWED=$((STOWED + 1))
     else
         log_warn "$pkg (conflict — run 'stow -t \$HOME -v --restow $pkg' to debug)"
-        ERRORS=$(( ERRORS + 1 ))
+        ERRORS=$((ERRORS + 1))
     fi
 done
 
@@ -74,7 +74,7 @@ run_script() {
         log_info "Running $script..."
         if ! bash "$path"; then
             log_warn "$script failed — continuing"
-            SCRIPT_ERRORS=$(( SCRIPT_ERRORS + 1 ))
+            SCRIPT_ERRORS=$((SCRIPT_ERRORS + 1))
         fi
     else
         log_warn "$script not found — skipping"

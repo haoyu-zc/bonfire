@@ -4,6 +4,8 @@
 # Reports: missing files, wrong symlink targets, hardlinks, and non-symlink conflicts.
 # Usage: dotcheck [--fix] [--clean]
 # =============================================================================
+# shellcheck disable=SC2088
+# (Tildes in this file are display strings printed to the user, not paths.)
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,10 +17,10 @@ SCRIPTS_DIR="$REPO_DIR/scripts"
 source "$SCRIPTS_DIR/_lib.sh"
 
 # Display helpers unique to dotcheck
-ok()       { printf "${C_GREEN}  OK       %s${C_RESET}\n" "$*"; }
-missing()  { printf "${C_RED}  MISSING  %s${C_RESET}\n" "$*"; }
-wrong()    { printf "${C_YELLOW}  WRONG    %s${C_RESET}\n" "$*"; }
-notlink()  { printf "${C_YELLOW}  NOT LINK %s${C_RESET}\n" "$*"; }
+ok() { printf "${C_GREEN}  OK       %s${C_RESET}\n" "$*"; }
+missing() { printf "${C_RED}  MISSING  %s${C_RESET}\n" "$*"; }
+wrong() { printf "${C_YELLOW}  WRONG    %s${C_RESET}\n" "$*"; }
+notlink() { printf "${C_YELLOW}  NOT LINK %s${C_RESET}\n" "$*"; }
 hardlink() { printf "${C_YELLOW}  HARDLINK %s${C_RESET}\n" "$*"; }
 
 # =============================================================================
@@ -57,7 +59,7 @@ for pkg_dir in */; do
 
     while IFS= read -r -d '' file; do
         # file is like: ./zsh/.zshrc or ./starship/.config/starship.toml
-        relpath="${file#./}"      # strip leading ./
+        relpath="${file#./}"       # strip leading ./
         relpath="${relpath#$pkg/}" # strip package prefix -> .zshrc or .config/...
 
         target="$HOME/$relpath"

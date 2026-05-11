@@ -31,7 +31,7 @@ DO_LIST=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --yes|-y)
+        --yes | -y)
             AUTO_YES=1
             shift
             ;;
@@ -47,7 +47,7 @@ while [[ $# -gt 0 ]]; do
             DO_LIST=1
             shift
             ;;
-        --help|-h)
+        --help | -h)
             grep '^#' "$0" | grep -v '#!/' | sed 's/^# \?//'
             exit 0
             ;;
@@ -140,20 +140,20 @@ printf "${C_BOLD}  Platform: ${C_CYAN}%s (%s)${C_RESET}\n" "$OS" "$DISTRO"
 printf "${C_BOLD}  Repo:     ${C_CYAN}%s${C_RESET}\n" "$REPO_DIR"
 printf "${C_BOLD}  Scripts:  ${C_CYAN}%d to run${C_RESET}\n\n" "${#SCRIPTS_TO_RUN[@]}"
 
-# Script descriptions
+# Script descriptions — keys are quoted so shfmt won't mangle hyphens as subtraction
 declare -A SCRIPT_DESC=(
-    [01-system-update.sh]="Update system packages / Xcode CLT"
-    [02-homebrew.sh]="Install Homebrew + formulae (+ casks on macOS)"
-    [03-apt-repos.sh]="Add third-party apt repos (Chrome, VSCode, Docker)"
-    [04-apt-packages.sh]="Install apt packages"
-    [05-flatpak.sh]="Install Flatpak apps (Obsidian, Slack)"
-    [06-appimages.sh]="Download & install AppImages (Snipaste)"
-    [07-mise.sh]="Install mise + dev tools (Node, Python, fzf, eza…)"
-    [08-shell-setup.sh]="Install Zsh and set as default shell"
-    [09-dotfiles.sh]="Symlink dotfiles via GNU Stow"
-    [10-ssh-server.sh]="Configure openssh-server with hardened settings"
-    [11-desktop-settings.sh]="Apply desktop prefs + CapsLock/Esc swap"
-    [12-verify.sh]="Run all checks and print summary"
+    ["01-system-update.sh"]="Update system packages / Xcode CLT"
+    ["02-homebrew.sh"]="Install Homebrew + formulae (+ casks on macOS)"
+    ["03-apt-repos.sh"]="Add third-party apt repos (Chrome, VSCode, Docker)"
+    ["04-apt-packages.sh"]="Install apt packages"
+    ["05-flatpak.sh"]="Install Flatpak apps (Obsidian, Slack)"
+    ["06-appimages.sh"]="Download & install AppImages (Snipaste)"
+    ["07-mise.sh"]="Install mise + dev tools (Node, Python, fzf, eza…)"
+    ["08-shell-setup.sh"]="Install Zsh and set as default shell"
+    ["09-dotfiles.sh"]="Symlink dotfiles via GNU Stow"
+    ["10-ssh-server.sh"]="Configure openssh-server with hardened settings"
+    ["11-desktop-settings.sh"]="Apply desktop prefs + CapsLock/Esc swap"
+    ["12-verify.sh"]="Run all checks and print summary"
 )
 
 # List what will run
@@ -186,8 +186,8 @@ fi
 # Initialize log
 # =============================================================================
 mkdir -p "$(dirname "$LOG_FILE")"
-echo "=== bootstrap.sh started at $(date) ===" >> "$LOG_FILE"
-echo "OS=$OS DISTRO=$DISTRO" >> "$LOG_FILE"
+echo "=== bootstrap.sh started at $(date) ===" >>"$LOG_FILE"
+echo "OS=$OS DISTRO=$DISTRO" >>"$LOG_FILE"
 
 # =============================================================================
 # Run scripts

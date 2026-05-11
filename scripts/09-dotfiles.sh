@@ -52,14 +52,14 @@ backup_conflicts() {
             log_warn "Backing up real file: ~/$relpath -> ~/${relpath}.bak"
             mv "$target" "${target}.bak"
         fi
-    done <<< "$conflicts"
+    done <<<"$conflicts"
 }
 
 # =============================================================================
 # Stow each dotfile package
 # =============================================================================
 log_info "Stowing dotfile packages from $DOTFILES_DIR..."
-cd "$DOTFILES_DIR"
+cd "$DOTFILES_DIR" || exit 1
 
 ERRORS=0
 for pkg_dir in */; do
