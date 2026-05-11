@@ -40,10 +40,10 @@ mise trust "$MISE_CONFIG" 2>/dev/null || true
 export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG"
 
 log_info "Installing all tools from mise config (this may take a while)..."
-mise install --yes
+run mise install --yes
 
 log_info "Regenerating mise shims..."
-mise reshim
+run mise reshim
 
 log_success "mise tools installed"
 log_info "Run 'mise ls' to see installed tools"

@@ -11,6 +11,7 @@
 #   ./bootstrap.sh --only dotfiles   # Run only the dotfiles script
 #   ./bootstrap.sh --only "apt mise" # Run multiple specific scripts
 #   ./bootstrap.sh --list            # List all available scripts
+#   ./bootstrap.sh --dry-run         # Print mutators as [dry-run] markers, no changes
 #   ./bootstrap.sh --help            # Show this help
 # =============================================================================
 
@@ -28,6 +29,7 @@ AUTO_YES=0
 ONLY_FILTER=""
 FROM_STEP=""
 DO_LIST=0
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -47,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             DO_LIST=1
             shift
             ;;
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
         --help | -h)
             grep '^#' "$0" | grep -v '#!/' | sed 's/^# \?//'
             exit 0
@@ -57,6 +63,8 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+export DRY_RUN
 
 # =============================================================================
 # Collect scripts
@@ -124,8 +132,9 @@ fi
 # =============================================================================
 # Banner
 # =============================================================================
-clear
-printf "${C_BOLD}${C_BLUE}"
+# clear tolerates missing TERM (CI runners don't set it by default).
+clear 2>/dev/null || true
+printf -- "${C_BOLD}${C_BLUE}"
 cat <<'BANNER'
   ██████╗  ██████╗ ███╗   ██╗███████╗██╗██████╗ ███████╗
   ██╔══██╗██╔═══██╗████╗  ██║██╔════╝██║██╔══██╗██╔════╝
@@ -138,7 +147,9 @@ printf "${C_RESET}\n"
 
 printf "${C_BOLD}  Platform: ${C_CYAN}%s (%s)${C_RESET}\n" "$OS" "$DISTRO"
 printf "${C_BOLD}  Repo:     ${C_CYAN}%s${C_RESET}\n" "$REPO_DIR"
-printf "${C_BOLD}  Scripts:  ${C_CYAN}%d to run${C_RESET}\n\n" "${#SCRIPTS_TO_RUN[@]}"
+printf "${C_BOLD}  Scripts:  ${C_CYAN}%d to run${C_RESET}\n" "${#SCRIPTS_TO_RUN[@]}"
+[[ "$DRY_RUN" -eq 1 ]] && printf "${C_BOLD}${C_YELLOW}  Mode:     DRY RUN — mutating commands will print as [dry-run] markers, not execute${C_RESET}\n"
+echo ""
 
 # Script descriptions — keys are quoted so shfmt won't mangle hyphens as subtraction
 declare -A SCRIPT_DESC=(

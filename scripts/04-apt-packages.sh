@@ -33,7 +33,7 @@ if [[ ${#packages[@]} -eq 0 ]]; then
     log_success "All apt packages already installed"
 else
     log_info "Installing ${#packages[@]} package(s): ${packages[*]}"
-    sudo apt-get install -y "${packages[@]}"
+    run sudo apt-get install -y "${packages[@]}"
     log_success "Installed ${#packages[@]} package(s)"
 fi
 

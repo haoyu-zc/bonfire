@@ -66,10 +66,12 @@ _log() {
     local msg="$*"
     local timestamp
     timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
-    # Print to stdout with color
-    printf "${color}${C_BOLD}${prefix}${C_RESET}${color} %s${C_RESET}\n" "$msg"
+    # Print to stdout with color. The leading `--` keeps bash's printf from
+    # treating a non-color expansion (e.g., "---" log_step prefix in non-tty
+    # mode) as an option flag.
+    printf -- "${color}${C_BOLD}${prefix}${C_RESET}${color} %s${C_RESET}\n" "$msg"
     # Append plain text to log file
-    printf '[%s] [%s] %s\n' "$timestamp" "$level" "$msg" >>"$LOG_FILE"
+    printf -- '[%s] [%s] %s\n' "$timestamp" "$level" "$msg" >>"$LOG_FILE"
 }
 
 log_info() { _log "INFO" "$C_BLUE" "==>" "$@"; }
@@ -120,6 +122,31 @@ brew_cask_installed() {
 }
 
 # =============================================================================
+# run() — execute a mutating command, with [mutate] / [dry-run] marker.
+#
+# In normal mode, prints `[mutate] <cmd>` (shell-quoted) before executing the
+# command. The `[mutate]` marker is what the idempotency CI job grepps to
+# assert that a second run-through is a no-op.
+#
+# When DRY_RUN=1 is exported (via bootstrap.sh --dry-run), the command is NOT
+# executed; only the `[dry-run] <cmd>` line is printed. Idempotency checks
+# (apt_installed, flatpak_installed, etc.) still run because they're
+# read-only — so a dry-run accurately previews which mutators would fire.
+# =============================================================================
+run() {
+    if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+        printf '[dry-run]'
+        printf ' %q' "$@"
+        echo
+    else
+        printf '[mutate]'
+        printf ' %q' "$@"
+        echo
+        "$@"
+    fi
+}
+
+# =============================================================================
 # Ensure helpers (idempotent install wrappers)
 # =============================================================================
 ensure_apt_package() {
@@ -128,7 +155,7 @@ ensure_apt_package() {
         log_success "apt: $pkg (already installed)"
     else
         log_step "apt: installing $pkg"
-        sudo apt-get install -y "$pkg"
+        run sudo apt-get install -y "$pkg"
         log_success "apt: $pkg installed"
     fi
 }
@@ -139,7 +166,7 @@ ensure_flatpak() {
         log_success "flatpak: $app_id (already installed)"
     else
         log_step "flatpak: installing $app_id"
-        flatpak install -y flathub "$app_id"
+        run flatpak install -y flathub "$app_id"
         log_success "flatpak: $app_id installed"
     fi
 }
@@ -150,7 +177,7 @@ ensure_brew_formula() {
         log_success "brew: $pkg (already installed)"
     else
         log_step "brew: installing formula $pkg"
-        brew install "$pkg"
+        run brew install "$pkg"
         log_success "brew: $pkg installed"
     fi
 }
@@ -161,7 +188,7 @@ ensure_brew_cask() {
         log_success "brew cask: $pkg (already installed)"
     else
         log_step "brew cask: installing $pkg"
-        brew install --cask "$pkg"
+        run brew install --cask "$pkg"
         log_success "brew cask: $pkg installed"
     fi
 }

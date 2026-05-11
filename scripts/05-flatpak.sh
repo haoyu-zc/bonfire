@@ -21,7 +21,7 @@ PACKAGES_TOML="$REPO_DIR/config/packages.toml"
 # =============================================================================
 if ! command_exists flatpak; then
     log_info "Installing flatpak..."
-    sudo apt-get install -y flatpak
+    run sudo apt-get install -y flatpak
     log_success "flatpak installed"
 else
     log_success "flatpak already installed"
@@ -30,7 +30,7 @@ fi
 # Add Flathub remote if not already present
 if ! flatpak remote-list 2>/dev/null | grep -q "flathub"; then
     log_info "Adding Flathub remote..."
-    sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    run sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
     log_success "Flathub remote added"
 else
     log_success "Flathub remote already configured"

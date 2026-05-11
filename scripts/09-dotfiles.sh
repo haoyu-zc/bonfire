@@ -17,7 +17,7 @@ DOTFILES_DIR="$REPO_DIR/dotfiles"
 if ! command_exists stow; then
     if [[ "$OS" == "linux" ]]; then
         log_info "Installing stow via apt..."
-        sudo apt-get install -y stow
+        run sudo apt-get install -y stow
     elif [[ "$OS" == "darwin" ]]; then
         setup_homebrew_path
         ensure_brew_formula stow
@@ -50,7 +50,7 @@ backup_conflicts() {
         local target="$HOME/$relpath"
         if [[ -f "$target" && ! -L "$target" ]]; then
             log_warn "Backing up real file: ~/$relpath -> ~/${relpath}.bak"
-            mv "$target" "${target}.bak"
+            run mv "$target" "${target}.bak"
         fi
     done <<<"$conflicts"
 }
@@ -71,8 +71,12 @@ for pkg_dir in */; do
     # Back up any pre-existing real files that would block stow
     backup_conflicts "$pkg"
 
-    if stow -t "$HOME" --restow "$pkg" 2>&1; then
-        log_success "Stowed: $pkg"
+    if run stow -t "$HOME" --restow "$pkg" 2>&1; then
+        if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+            log_info "Would stow: $pkg"
+        else
+            log_success "Stowed: $pkg"
+        fi
     else
         log_warn "Conflict stowing '$pkg' — run 'stow -t \$HOME -v --restow $pkg' to debug"
         ERRORS=$((ERRORS + 1))
