@@ -32,7 +32,7 @@ if [[ "${1:-}" == "--clean" ]]; then
     while IFS= read -r -d '' bakfile; do
         echo "  rm $bakfile"
         rm "$bakfile"
-        ((found++))
+        found=$((found + 1))
     done < <(find "$HOME" -maxdepth 4 -name "*.bak" -newer "$DOTFILES_DIR" -print0 2>/dev/null)
     echo "$found .bak file(s) removed."
     exit 0
@@ -67,7 +67,7 @@ for pkg_dir in */; do
 
         if [[ ! -e "$target" ]] && [[ ! -L "$target" ]]; then
             missing "~/$relpath (expected from $pkg)"
-            ((ISSUES++))
+            ISSUES=$((ISSUES + 1))
             if [[ $FIX_MODE -eq 1 ]]; then
                 echo "    Restowing $pkg..."
                 if ! stow -t "$HOME" --restow "$pkg"; then
@@ -79,11 +79,11 @@ for pkg_dir in */; do
             actual="$(realpath "$target" 2>/dev/null || echo "$target")"
             if [[ "$actual" == "$expected" ]]; then
                 ok "~/$relpath -> $(basename "$expected")"
-                ((OK++))
+                OK=$((OK + 1))
             else
                 wrong "~/$relpath -> $actual"
                 wrong "   expected -> $expected"
-                ((ISSUES++))
+                ISSUES=$((ISSUES + 1))
             fi
 
         else
@@ -94,7 +94,7 @@ for pkg_dir in */; do
             actual="$(realpath "$target" 2>/dev/null || echo "$target")"
             if [[ "$actual" == "$expected" ]]; then
                 ok "~/$relpath -> $(basename "$expected") (via tree-fold)"
-                ((OK++))
+                OK=$((OK + 1))
                 continue
             fi
             # Otherwise, check if it's a hardlink (same inode) — real anomaly.
@@ -103,7 +103,7 @@ for pkg_dir in */; do
             else
                 notlink "~/$relpath (regular file, not a symlink — stow cannot manage)"
             fi
-            ((ISSUES++))
+            ISSUES=$((ISSUES + 1))
             if [[ $FIX_MODE -eq 1 ]]; then
                 echo "    Backing up and restowing..."
                 mv "$target" "${target}.bak"
