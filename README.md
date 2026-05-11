@@ -1,20 +1,27 @@
 # bonfire
 
+[![ci](https://github.com/haoyu-zc/bonfire/actions/workflows/ci.yml/badge.svg)](https://github.com/haoyu-zc/bonfire/actions/workflows/ci.yml)
+
 Automated dev environment bootstrap for Pop!_OS / Ubuntu and macOS. One command installs everything.
 
 ## Quick Start
 
 ```bash
-git clone <your-repo-url> ~/./_workspace/projects/bonfire
-cd ~/./_workspace/projects/bonfire
-bash bootstrap.sh
+git clone git@github.com:haoyu-zc/bonfire.git ~/bonfire   # any path you like
+cd ~/bonfire
+bash bootstrap.sh --dry-run --yes    # preview package-install steps (see below for scope)
+bash bootstrap.sh                    # actually run it (asks for confirmation)
 ```
 
-Or without prompts:
-
-```bash
-bash bootstrap.sh --yes
-```
+The repo derives its own location at runtime, so you can clone it anywhere — no
+hardcoded paths to update. `--dry-run` is a *package-install preview*: it wraps
+`apt install`, `flatpak install`, `mise install`, `stow --restow`, and the
+stow conflict-backup `mv` via `scripts/_lib.sh:run()` and prints them as
+`[dry-run]` markers instead of executing. Other bootstrap steps still run —
+`apt-get update`, apt-repo key writes, Homebrew updates, AppImage downloads,
+SSH server config, desktop/keyboard settings, the `setup.log` itself. Use
+`--only` to scope what runs (e.g., `--dry-run --only "04-apt-packages 07-mise
+09-dotfiles"`). Add `--yes` to skip prompts.
 
 ## What Gets Installed
 
@@ -30,14 +37,26 @@ bash bootstrap.sh --yes
 
 ### Dev Tools (via mise)
 
-All installed cross-platform via [mise](https://mise.jdx.dev/):
+All installed cross-platform via [mise](https://mise.jdx.dev/) — see
+`dotfiles/mise/.config/mise/config.toml` for the source of truth.
 
-- **Runtimes**: Node LTS, Python 3.12
-- **Editor**: Neovim (with [LazyVim](https://www.lazyvim.org/))
-- **Shell tools**: fzf, zoxide, ripgrep, bat, fd, eza, delta
-- **Git**: lazygit, delta
-- **Prompt**: starship
-- **Utilities**: tldr, jq, yq, uv, ruff
+- **Runtimes**: Node LTS, Python 3.12, Neovim stable (with [LazyVim](https://www.lazyvim.org/))
+- **Shell tools**: fzf, zoxide, ripgrep, bat, fd, eza, starship, jq, yq, gh
+- **Git**: lazygit, delta, git-lfs
+- **Python**: uv, ruff
+- **TUI / terminal**: zellij, gum, yazi
+- **Modern coreutils**: procs (ps), dust (du), duf (df), btop (top), sd (sed), hyperfine (benchmarking)
+
+Shell-facing tools (`starship`, `fzf`, `zoxide`, `eza`, `bat`) are pinned to
+major versions so a fresh-machine bootstrap a year from now won't pull a
+surprise breaking 2.0 that changes your daily-driver behavior. Fast-moving
+tools (`ruff`, `uv`, `gh`) stay on `"latest"` to get fixes.
+
+> `tldr` (tealdeer) is **not** managed by mise. On macOS it's a Homebrew
+> formula (`[brew] formulae` in `config/packages.toml`); on Linux,
+> `scripts/07-mise.sh` downloads the latest binary directly from
+> tealdeer's GitHub releases (the apt-packaged version 1.6.1 has a
+> hardcoded broken cache URL).
 
 ## Usage
 
@@ -51,10 +70,28 @@ make install-yes    # Without prompts
 ### Partial setup
 
 ```bash
-bash bootstrap.sh --only mise       # Only install mise tools
-bash bootstrap.sh --only dotfiles   # Only stow dotfiles
-bash bootstrap.sh --list            # List all available scripts
+bash bootstrap.sh --only mise                    # Run only the mise script (keyword match)
+bash bootstrap.sh --only "07-mise 09-dotfiles"   # Multiple keywords
+bash bootstrap.sh --from 09                      # Resume from step 09 onwards
+bash bootstrap.sh --dry-run --yes                # Preview package-install steps (see below)
+bash bootstrap.sh --list                         # List all available scripts
 ```
+
+`--dry-run` wraps the package-install mutators (apt install, flatpak install,
+mise install, stow restow, conflict-backup `mv`) via `scripts/_lib.sh:run()`
+and prints them as `[dry-run] <cmd>` instead of executing. Idempotency checks
+(`apt_installed`, `flatpak_installed`, etc.) still run, so the preview is
+accurate for those mutators. Real runs print the same lines with a `[mutate]`
+prefix — CI uses this to assert idempotency: a second bootstrap should
+produce zero new `[mutate]` markers (excluding externally-idempotent re-runs
+like `mise install` and `stow --restow`, which CI filters out).
+
+It's a preview of the *package-install layer*, not the full bootstrap. Other
+steps (`apt-get update`, apt-repo / GPG-key wiring, Homebrew updates, AppImage
+downloads, SSH server config, desktop/keyboard settings) still execute under
+dry-run. Combine with `--only` to scope sharply, e.g. `--dry-run --only
+"04-apt-packages 09-dotfiles"` previews what apt would install and where stow
+would link, without touching the rest.
 
 ### Dotfile management
 
