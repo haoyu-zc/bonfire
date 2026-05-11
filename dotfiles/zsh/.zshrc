@@ -314,3 +314,14 @@ else
 fi
 unset __mamba_setup
 # <<< mamba initialize <<<
+
+# >>> phenoplier shell init >>>
+phenoplier() {
+    local cmd="${1:-}"
+    if [ "$cmd" = "activate" ] || [ "$cmd" = "deactivate" ]; then
+        eval "$(command phenoplier "$@")"
+    else
+        command phenoplier "$@"
+    fi
+}
+# <<< phenoplier shell init <<<
