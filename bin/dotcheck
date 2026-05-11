@@ -76,7 +76,7 @@ for pkg_dir in */; do
             fi
 
         elif [[ -L "$target" ]]; then
-            actual="$(readlink -f "$target")"
+            actual="$(realpath "$target" 2>/dev/null || echo "$target")"
             if [[ "$actual" == "$expected" ]]; then
                 ok "~/$relpath -> $(basename "$expected")"
                 ((OK++))
@@ -87,8 +87,17 @@ for pkg_dir in */; do
             fi
 
         else
-            # Regular file — not managed by stow
-            # Check if it's a hardlink to the expected file
+            # Not a direct symlink — but it can still be correctly stowed via
+            # tree-folding (stow symlinks the parent directory when no other
+            # package owns it). Resolve the path: if it lands on $expected, the
+            # file is properly stowed via a parent symlink.
+            actual="$(realpath "$target" 2>/dev/null || echo "$target")"
+            if [[ "$actual" == "$expected" ]]; then
+                ok "~/$relpath -> $(basename "$expected") (via tree-fold)"
+                ((OK++))
+                continue
+            fi
+            # Otherwise, check if it's a hardlink (same inode) — real anomaly.
             if [[ "$(stat -c %i "$target")" == "$(stat -c %i "$expected")" ]]; then
                 hardlink "~/$relpath (hardlink to repo — should be symlink, restow to fix)"
             else
