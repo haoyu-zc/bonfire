@@ -1,0 +1,63 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit on all files
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  bootstrap-smoke:
+    name: Bootstrap smoke (mise + dotfiles)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install base dependencies
+        # 09-dotfiles.sh auto-installs stow if missing; we still pre-install
+        # the most common build deps so 07-mise has what it needs for ubi extracts.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends stow ca-certificates curl
+
+      - name: Run bootstrap (mise + dotfiles only)
+        # `--only` matches by keyword. 12-verify is intentionally NOT run here:
+        # it checks desktop/SSH/Docker state that doesn't exist on the runner.
+        run: bash bootstrap.sh --yes --only "07-mise 09-dotfiles"
+
+      - name: Verify mise-managed tools are on PATH
+        run: |
+          export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+          missing=()
+          for cmd in fzf zoxide rg bat fd eza delta lazygit starship jq yq uv ruff node python3 \
+                    procs dust duf btop sd hyperfine gum yazi; do
+              if ! command -v "$cmd" >/dev/null 2>&1; then
+                  missing+=("$cmd")
+              fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+              printf 'MISSING: %s\n' "${missing[@]}"
+              exit 1
+          fi
+          echo "All expected mise-managed tools resolved."
+
+      - name: Verify dotfile drift is clean
+        # bin/dotcheck exits 1 on any drift after a successful stow.
+        run: bin/dotcheck
