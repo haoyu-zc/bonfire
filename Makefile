@@ -104,6 +104,19 @@ shellcheck: ## Run shellcheck on all scripts
 		echo "shellcheck not installed — install with: apt install shellcheck"; \
 	fi
 
+.PHONY: pre-commit-install
+pre-commit-install: ## Install pre-commit and wire it as a git hook (once per clone)
+	@if ! command -v pre-commit &>/dev/null; then \
+		echo "Installing pre-commit via pip --user..."; \
+		pip install --user pre-commit || exit 1; \
+	fi
+	@pre-commit install
+	@echo "pre-commit hook installed. Run 'pre-commit run --all-files' to lint everything."
+
+.PHONY: pre-commit
+pre-commit: ## Run pre-commit hooks against all files
+	@pre-commit run --all-files
+
 ##@ Help
 
 .PHONY: help

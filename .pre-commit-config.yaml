@@ -1,0 +1,38 @@
+# =============================================================================
+# pre-commit hooks for bonfire
+# Install once per clone: `make pre-commit-install` (or `pre-commit install`).
+# Run manually on all files: `pre-commit run --all-files`.
+# =============================================================================
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        # Scope to our bash files; pre-commit's shellcheck-py defaults are fine.
+        files: ^(bootstrap\.sh|bin/.*|scripts/.*\.sh|tests/.*\.sh)$
+        types: [text]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-2
+    hooks:
+      - id: shfmt
+        args: ["-i", "4", "-ci", "-bn", "-w"]
+        files: ^(bootstrap\.sh|bin/.*|scripts/.*\.sh|tests/.*\.sh)$
+        types: [text]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint

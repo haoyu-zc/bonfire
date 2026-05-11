@@ -221,6 +221,21 @@ still needs to be installed.
    ```
 4. **Verify everything**: `make test`
 
+## Development
+
+Linting runs via [pre-commit](https://pre-commit.com): shellcheck + shfmt for
+bash, actionlint for `.github/workflows/*.yml`, plus a few cheap built-ins
+(trailing whitespace, EOF newline, yaml/json validation).
+
+Set it up once per clone:
+
+```bash
+make pre-commit-install   # installs pre-commit (pip --user) and the git hook
+make pre-commit           # lint everything right now
+```
+
+After install, `git commit` will refuse commits that fail the checks.
+
 ## Design Principles
 
 - **Idempotent**: Safe to run multiple times — checks before acting
