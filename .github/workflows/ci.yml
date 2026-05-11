@@ -40,6 +40,13 @@ jobs:
       - name: Run bootstrap (mise + dotfiles only)
         # `--only` matches by keyword. 12-verify is intentionally NOT run here:
         # it checks desktop/SSH/Docker state that doesn't exist on the runner.
+        # GITHUB_TOKEN raises the GitHub API rate limit from 60/hr to 5000/hr,
+        # which mise needs because every ubi:/aqua: tool resolves a tag via the
+        # /releases API. Scoped to this step only (the verification grep steps
+        # below don't need it).
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash bootstrap.sh --yes --only "07-mise 09-dotfiles"
 
       - name: Verify mise-managed tools are on PATH
@@ -61,3 +68,57 @@ jobs:
       - name: Verify dotfile drift is clean
         # bin/dotcheck exits 1 on any drift after a successful stow.
         run: bin/dotcheck
+
+  idempotency:
+    name: Idempotency (second bootstrap is no-op)
+    # Skip if smoke already failed — saves runner minutes since this job
+    # does the same work and then more.
+    needs: bootstrap-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends stow ca-certificates curl
+
+      - name: First bootstrap run (mutates as needed)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # pipefail so a bootstrap failure isn't masked by tee's success.
+        shell: bash -o pipefail {0}
+        run: bash bootstrap.sh --yes --only "07-mise 09-dotfiles" 2>&1 | tee run1.log
+
+      - name: Second bootstrap run (should be no-op)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash -o pipefail {0}
+        run: bash bootstrap.sh --yes --only "07-mise 09-dotfiles" 2>&1 | tee run2.log
+
+      - name: Assert filesystem state is clean after run-2
+        # stow's exit code can be 0 even when conflicts are logged, so the
+        # [mutate]-line check below is not sufficient on its own — pair it
+        # with a state-based assertion via dotcheck.
+        run: bin/dotcheck
+
+      - name: Assert no new mutations on second run
+        # The `[mutate]` marker is printed by scripts/_lib.sh:run() before any
+        # mutating command. Some wrapped commands (mise install, mise reshim,
+        # stow --restow) are externally idempotent: they print the marker on
+        # every run but actually do nothing the second time. We filter those
+        # out, then assert the remainder is empty.
+        run: |
+          new_mutations=$(grep '^\[mutate\]' run2.log \
+              | grep -v 'mise install' \
+              | grep -v 'mise reshim' \
+              | grep -v 'stow -t' \
+              || true)
+          if [[ -n "$new_mutations" ]]; then
+              echo "FAIL: second bootstrap introduced new mutations:"
+              echo "$new_mutations"
+              exit 1
+          fi
+          echo "Idempotency check passed (no new mutations on run-2)."
