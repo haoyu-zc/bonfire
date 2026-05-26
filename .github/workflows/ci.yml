@@ -25,7 +25,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   bootstrap-smoke:
-    name: Bootstrap smoke (mise + dotfiles)
+    name: User path (mise + dotfiles)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,3 +122,59 @@ jobs:
               exit 1
           fi
           echo "Idempotency check passed (no new mutations on run-2)."
+
+  run-modes:
+    name: Run-mode selection (admin vs user)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: --admin selects all 12 steps
+        # Feed 'n' to the confirm prompt so it prints the plan then aborts
+        # cleanly — asserts selection only, runs no step.
+        run: |
+          out=$(printf 'n\n' | bash bootstrap.sh --admin --dry-run 2>&1 || true)
+          printf '%s\n' "$out"
+          printf '%s\n' "$out" | grep -q 'Mode:.*ADMIN' || { echo "FAIL: no ADMIN banner"; exit 1; }
+          for s in 01-system-update 02-homebrew 03-apt-repos 04-apt-packages 05-flatpak \
+                   06-appimages 07-mise 08-shell-setup 09-dotfiles 10-ssh-server \
+                   11-desktop-settings 12-verify; do
+              printf '%s\n' "$out" | grep -qE "^  ${s}\.sh" || { echo "FAIL: --admin missing ${s}"; exit 1; }
+          done
+          echo "OK: --admin lists all 12 steps"
+
+      - name: default (user) run skips admin-only steps
+        run: |
+          out=$(printf 'n\n' | bash bootstrap.sh --dry-run 2>&1 || true)
+          printf '%s\n' "$out"
+          printf '%s\n' "$out" | grep -q 'Mode:.*USER' || { echo "FAIL: no USER banner"; exit 1; }
+          for s in 01-system-update 02-homebrew 03-apt-repos 04-apt-packages 05-flatpak 11-desktop-settings; do
+              printf '%s\n' "$out" | grep -q "Skipping ${s}.sh (admin-only" || { echo "FAIL: should skip ${s}"; exit 1; }
+          done
+          for s in 06-appimages 07-mise 08-shell-setup 09-dotfiles 10-ssh-server 12-verify; do
+              printf '%s\n' "$out" | grep -qE "^  ${s}\.sh" || { echo "FAIL: should run ${s}"; exit 1; }
+          done
+          echo "OK: default run skips the 6 admin steps, keeps the 6 user steps"
+
+  admin-provision:
+    name: Admin path (apt repos + gh)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run admin step 03-apt-repos (--admin)
+        # Proves an admin-tagged step actually executes under --admin, and
+        # exercises 03's binary-keyring path (GitHub CLI ships a binary keyring,
+        # Google/Microsoft ship ASCII-armored keys — both branches run here).
+        run: bash bootstrap.sh --admin --yes --only 03-apt-repos
+
+      - name: Assert GitHub CLI repo + keyring were installed
+        run: |
+          test -f /etc/apt/keyrings/github-cli.gpg
+          test -f /etc/apt/sources.list.d/github-cli.list
+          echo "OK: github-cli repo + keyring present"
+
+      - name: Install gh from the new repo (proves the repo/key work)
+        run: |
+          sudo apt-get install -y gh
+          gh --version
