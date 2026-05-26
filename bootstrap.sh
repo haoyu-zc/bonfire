@@ -219,6 +219,12 @@ for script in "${SCRIPTS_TO_RUN[@]}"; do
         COMPLETED_SCRIPTS+=("$script_name")
     else
         EXIT_CODE=$?
+        if [[ $EXIT_CODE -eq $EXIT_ACTION_REQUIRED ]]; then
+            log_error "$script_name needs action before the bootstrap can continue."
+            log_error "Resume after fixing: bash bootstrap.sh --from $script_name"
+            FAILED_SCRIPTS+=("$script_name")
+            break
+        fi
         log_error "$script_name FAILED (exit code $EXIT_CODE)"
         FAILED_SCRIPTS+=("$script_name")
 

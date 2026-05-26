@@ -7,8 +7,11 @@
 # - Shell-facing tools (starship, fzf, zoxide, eza, bat) are pinned to majors
 #   so that a year-from-now bootstrap doesn't pull a breaking 2.0 and silently
 #   change shell behavior.
-# - Fast-moving / mature tools (ruff, uv, gh, jq, yq, lazygit, delta, ripgrep,
+# - Fast-moving / mature tools (ruff, uv, jq, yq, lazygit, delta, ripgrep,
 #   fd, zellij, git-lfs) stay on "latest" — low regression risk + you want fixes.
+# - gh (GitHub CLI) is NOT managed here — it's installed system-wide via apt
+#   (config/packages.toml). 07-mise.sh reads `gh auth token` to lift mise's
+#   GitHub API rate limit; with no token the bootstrap stops with instructions.
 # - When adding a new ubi: entry with a major pin, smoke-test `mise install`
 #   once to confirm the project's release tag format parses cleanly.
 # =============================================================================
@@ -38,7 +41,6 @@ neovim = "stable"
 "ubi:astral-sh/ruff"           = "latest"   # fast Python linter + formatter
 git-lfs = "latest"
 zellij = "latest"
-gh = "latest"
 
 # Modern coreutils replacements
 "ubi:dalance/procs"            = "0"        # ps replacement

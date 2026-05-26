@@ -16,6 +16,13 @@ repo = "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main"
 key = "https://packages.microsoft.com/keys/microsoft.asc"
 repo = "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main"
 
+[apt.repos.github-cli]
+# Key is a binary keyring (not ASCII-armored); 03-apt-repos.sh detects this
+# and installs it without dearmoring. Installing gh here (system-wide) means
+# `gh auth login` once gives mise (07) a GitHub token to avoid API rate limits.
+key = "https://cli.github.com/packages/githubcli-archive-keyring.gpg"
+repo = "deb [arch=amd64] https://cli.github.com/packages stable main"
+
 [apt]
 packages = [
     # Build essentials
@@ -62,6 +69,7 @@ packages = [
     # From third-party repos
     "google-chrome-stable",
     "code",
+    "gh",
 ]
 
 # --- Flatpak (Linux only) ---

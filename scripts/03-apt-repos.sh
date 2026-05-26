@@ -43,9 +43,20 @@ add_apt_repo() {
 
     log_step "Adding repo: $name"
 
-    # Download and dearmor the GPG key
+    # Import the GPG key. Keys come in two shapes: ASCII-armored (Google,
+    # Microsoft) which must be dearmored, or an already-binary keyring (GitHub
+    # CLI) which must be written through as-is. Dearmoring a binary keyring
+    # corrupts it, so detect the armor header and branch.
     log_step "  Importing GPG key from $key_url"
-    curl -fsSL "$key_url" | sudo gpg --dearmor -o "$keyring_path"
+    local tmp_key
+    tmp_key="$(mktemp)"
+    curl -fsSL "$key_url" -o "$tmp_key"
+    if grep -q "BEGIN PGP" "$tmp_key"; then
+        sudo gpg --dearmor -o "$keyring_path" <"$tmp_key"
+    else
+        sudo install -m 0644 "$tmp_key" "$keyring_path"
+    fi
+    rm -f "$tmp_key"
     sudo chmod a+r "$keyring_path"
 
     # Write the repo source line, referencing the keyring
