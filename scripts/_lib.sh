@@ -166,7 +166,7 @@ ensure_flatpak() {
         log_success "flatpak: $app_id (already installed)"
     else
         log_step "flatpak: installing $app_id"
-        run flatpak install -y flathub "$app_id"
+        run sudo flatpak install -y flathub "$app_id"
         log_success "flatpak: $app_id installed"
     fi
 }
