@@ -46,7 +46,7 @@ export LOG_FILE
 
 # Exit code a step uses to demand the whole bootstrap halt (even under --yes),
 # e.g. a required credential is missing. bootstrap.sh's run loop honors it.
-EXIT_ACTION_REQUIRED=78   # EX_CONFIG from sysexits.h
+EXIT_ACTION_REQUIRED=78 # EX_CONFIG from sysexits.h
 export EXIT_ACTION_REQUIRED
 
 # Admin mode. 1 when bootstrap.sh is run with --admin (full system provisioning);

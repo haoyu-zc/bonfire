@@ -119,5 +119,5 @@ if is_admin; then
     echo "  Or add the key manually on this machine:"
     echo "       echo \"<your public key>\" >> ~/.ssh/authorized_keys"
 else
-    log_success "~/.ssh ready"
+    log_success "User ~/.ssh is ready"
 fi
