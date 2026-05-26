@@ -3,8 +3,11 @@
 # bootstrap.sh — Single entry point for full bonfire setup
 #
 # Usage:
-#   ./bootstrap.sh                   # Full setup (prompts for confirmation)
-#   ./bootstrap.sh --yes             # Full setup (no prompts)
+#   ./bootstrap.sh                   # Per-user setup (mise, dotfiles, CLI tools…) — prompts
+#   ./bootstrap.sh --yes             # Per-user setup, no prompts
+#   ./bootstrap.sh --admin           # Full machine provisioning (system pkgs, repos, flatpak,
+#                                    #   SSH server) + the per-user steps. Run once by the admin;
+#                                    #   also the mode for macOS / single-user setups.
 #   ./bootstrap.sh --from 03         # Resume from a specific step (skips earlier ones)
 #   ./bootstrap.sh --from apt-repos  # Same, matched by keyword
 #   ./bootstrap.sh --only mise       # Run only the mise script
@@ -30,11 +33,16 @@ ONLY_FILTER=""
 FROM_STEP=""
 DO_LIST=0
 DRY_RUN=0
+ADMIN=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --yes | -y)
             AUTO_YES=1
+            shift
+            ;;
+        --admin)
+            ADMIN=1
             shift
             ;;
         --only)
@@ -66,6 +74,7 @@ done
 
 export DRY_RUN
 export AUTO_YES
+export ADMIN
 
 # =============================================================================
 # Collect scripts
@@ -79,10 +88,14 @@ while IFS= read -r script; do
 done < <(find "$SCRIPTS_DIR" -maxdepth 1 -name '[0-9][0-9]-*.sh' | sort)
 
 if [[ $DO_LIST -eq 1 ]]; then
-    echo "Available scripts:"
+    echo "Available scripts ((admin) = only runs with --admin):"
     for script in "${ALL_SCRIPTS[@]}"; do
         name="$(basename "$script" .sh)"
-        printf "  %s\n" "$name"
+        if grep -qm1 '^# audience: admin' "$script"; then
+            printf "  %s (admin)\n" "$name"
+        else
+            printf "  %s\n" "$name"
+        fi
     done
     exit 0
 fi
@@ -130,6 +143,25 @@ else
     SCRIPTS_TO_RUN=("${ALL_SCRIPTS[@]}")
 fi
 
+# Audience filter: in the default (non-admin) run, drop steps tagged
+# `# audience: admin` (system-wide provisioning only the machine admin does).
+# Applies after --only/--from/default selection so the rule is uniform.
+if [[ $ADMIN -eq 0 ]]; then
+    kept=()
+    for script in "${SCRIPTS_TO_RUN[@]}"; do
+        if grep -qm1 '^# audience: admin' "$script"; then
+            log_info "Skipping $(basename "$script") (admin-only — re-run with --admin)"
+        else
+            kept+=("$script")
+        fi
+    done
+    SCRIPTS_TO_RUN=("${kept[@]}")
+    if [[ ${#SCRIPTS_TO_RUN[@]} -eq 0 ]]; then
+        log_warn "Nothing to do — all selected steps are admin-only. Re-run with --admin."
+        exit 0
+    fi
+fi
+
 # =============================================================================
 # Banner
 # =============================================================================
@@ -149,6 +181,11 @@ printf "${C_RESET}\n"
 printf "${C_BOLD}  Platform: ${C_CYAN}%s (%s)${C_RESET}\n" "$OS" "$DISTRO"
 printf "${C_BOLD}  Repo:     ${C_CYAN}%s${C_RESET}\n" "$REPO_DIR"
 printf "${C_BOLD}  Scripts:  ${C_CYAN}%d to run${C_RESET}\n" "${#SCRIPTS_TO_RUN[@]}"
+if [[ "$ADMIN" -eq 1 ]]; then
+    printf "${C_BOLD}  Mode:     ${C_CYAN}ADMIN — full system + per-user provisioning${C_RESET}\n"
+else
+    printf "${C_BOLD}  Mode:     ${C_CYAN}USER — per-user tools only; use --admin for full system provisioning${C_RESET}\n"
+fi
 [[ "$DRY_RUN" -eq 1 ]] && printf "${C_BOLD}${C_YELLOW}  Mode:     DRY RUN — mutating commands will print as [dry-run] markers, not execute${C_RESET}\n"
 echo ""
 

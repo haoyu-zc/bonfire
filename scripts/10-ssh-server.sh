@@ -2,6 +2,9 @@
 # =============================================================================
 # 10-ssh-server.sh — Configure openssh-server (Linux only)
 # Writes a drop-in config that survives package upgrades.
+#
+# The SSH *server* (install, /etc/ssh config, systemctl) is admin-only and runs
+# with --admin. The per-user ~/.ssh scaffold runs in every mode.
 # =============================================================================
 
 # shellcheck source=_lib.sh
@@ -18,21 +21,21 @@ check_not_root
 DROP_IN="/etc/ssh/sshd_config.d/99-custom.conf"
 
 # =============================================================================
-# Ensure openssh-server is installed
+# Server install + hardened config (admin only)
 # =============================================================================
-if ! apt_installed openssh-server; then
-    log_info "Installing openssh-server..."
-    sudo apt-get install -y openssh-server
-    log_success "openssh-server installed"
-else
-    log_success "openssh-server already installed"
-fi
+if is_admin; then
+    # Ensure openssh-server is installed
+    if ! apt_installed openssh-server; then
+        log_info "Installing openssh-server..."
+        sudo apt-get install -y openssh-server
+        log_success "openssh-server installed"
+    else
+        log_success "openssh-server already installed"
+    fi
 
-# =============================================================================
-# Write drop-in config
-# =============================================================================
-log_info "Writing SSH drop-in config to $DROP_IN..."
-sudo tee "$DROP_IN" >/dev/null <<'EOF'
+    # Write drop-in config
+    log_info "Writing SSH drop-in config to $DROP_IN..."
+    sudo tee "$DROP_IN" >/dev/null <<'EOF'
 # Custom SSH server configuration — managed by bonfire
 # This file is loaded after /etc/ssh/sshd_config (override order)
 
@@ -51,30 +54,33 @@ X11Forwarding no
 KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256
 EOF
 
-# sshd -t requires /run/sshd to exist (normally created on first start)
-sudo mkdir -p /run/sshd
+    # sshd -t requires /run/sshd to exist (normally created on first start)
+    sudo mkdir -p /run/sshd
 
-# Validate config before restarting
-log_info "Validating SSH config..."
-if sudo sshd -t; then
-    log_success "SSH config validation passed"
-    log_info "Restarting sshd..."
-    sudo systemctl restart ssh
-    log_success "SSH server restarted"
+    # Validate config before restarting
+    log_info "Validating SSH config..."
+    if sudo sshd -t; then
+        log_success "SSH config validation passed"
+        log_info "Restarting sshd..."
+        sudo systemctl restart ssh
+        log_success "SSH server restarted"
+    else
+        log_error "SSH config validation failed — not restarting sshd"
+        sudo rm -f "$DROP_IN"
+        exit 1
+    fi
+
+    # Ensure SSH service is enabled at boot
+    if ! sudo systemctl is-enabled ssh &>/dev/null; then
+        log_info "Enabling SSH service at boot..."
+        sudo systemctl enable ssh
+    fi
 else
-    log_error "SSH config validation failed — not restarting sshd"
-    sudo rm -f "$DROP_IN"
-    exit 1
-fi
-
-# Ensure SSH service is enabled at boot
-if ! sudo systemctl is-enabled ssh &>/dev/null; then
-    log_info "Enabling SSH service at boot..."
-    sudo systemctl enable ssh
+    log_info "SSH server install/config is admin-only (use --admin) — configuring ~/.ssh only."
 fi
 
 # =============================================================================
-# Set up ~/.ssh/ directory with correct permissions
+# Set up ~/.ssh/ directory with correct permissions (every user)
 # =============================================================================
 log_info "Setting up ~/.ssh/ directory..."
 mkdir -p "$HOME/.ssh"
@@ -93,21 +99,25 @@ fi
 # =============================================================================
 # Summary
 # =============================================================================
-log_success "SSH server configured"
-log_info "Status: $(sudo systemctl is-active ssh)"
-echo ""
-log_warn "PasswordAuthentication is DISABLED. To connect from another machine:"
-echo ""
-echo "  1. Temporarily enable password auth on this machine:"
-echo "       sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' $DROP_IN"
-echo "       sudo systemctl reload ssh"
-echo ""
-echo "  2. Copy your public key from the other machine:"
-echo "       ssh-copy-id $USER@$(hostname -I | awk '{print $1}')"
-echo ""
-echo "  3. Disable password auth again on this machine:"
-echo "       sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' $DROP_IN"
-echo "       sudo systemctl reload ssh"
-echo ""
-echo "  Or add the key manually on this machine:"
-echo "       echo \"<your public key>\" >> ~/.ssh/authorized_keys"
+if is_admin; then
+    log_success "SSH server configured"
+    log_info "Status: $(sudo systemctl is-active ssh)"
+    echo ""
+    log_warn "PasswordAuthentication is DISABLED. To connect from another machine:"
+    echo ""
+    echo "  1. Temporarily enable password auth on this machine:"
+    echo "       sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' $DROP_IN"
+    echo "       sudo systemctl reload ssh"
+    echo ""
+    echo "  2. Copy your public key from the other machine:"
+    echo "       ssh-copy-id $USER@$(hostname -I | awk '{print $1}')"
+    echo ""
+    echo "  3. Disable password auth again on this machine:"
+    echo "       sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' $DROP_IN"
+    echo "       sudo systemctl reload ssh"
+    echo ""
+    echo "  Or add the key manually on this machine:"
+    echo "       echo \"<your public key>\" >> ~/.ssh/authorized_keys"
+else
+    log_success "~/.ssh ready"
+fi

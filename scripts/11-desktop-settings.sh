@@ -8,6 +8,9 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — opinionated personal desktop/keyboard prefs (CapsLock↔Esc, clock);
+# opt-in via `bootstrap.sh --admin` so they're not forced on other lab users
+
 log_section "Desktop Settings"
 check_not_root
 

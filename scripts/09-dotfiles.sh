@@ -15,12 +15,19 @@ DOTFILES_DIR="$REPO_DIR/dotfiles"
 # Ensure GNU Stow is installed
 # =============================================================================
 if ! command_exists stow; then
-    if [[ "$OS" == "linux" ]]; then
-        log_info "Installing stow via apt..."
-        run sudo apt-get install -y stow
-    elif [[ "$OS" == "darwin" ]]; then
-        setup_homebrew_path
-        ensure_brew_formula stow
+    if is_admin; then
+        if [[ "$OS" == "linux" ]]; then
+            log_info "Installing stow via apt..."
+            run sudo apt-get install -y stow
+        elif [[ "$OS" == "darwin" ]]; then
+            setup_homebrew_path
+            ensure_brew_formula stow
+        fi
+    else
+        log_error "stow is required but not installed."
+        log_error "Ask the admin to run 'bash bootstrap.sh --admin' (installs stow system-wide),"
+        log_error "then resume: bash bootstrap.sh --from 09-dotfiles"
+        exit "$EXIT_ACTION_REQUIRED"
     fi
 fi
 

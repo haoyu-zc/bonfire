@@ -154,16 +154,18 @@ if [[ "$OS" == "linux" ]]; then
         check_warn "No AppImages found in $APPIMAGE_DIR"
     fi
 
-    # SSH server
-    if sudo systemctl is-active ssh &>/dev/null; then
-        check_pass "SSH server is running"
-        if [[ -f "/etc/ssh/sshd_config.d/99-custom.conf" ]]; then
-            check_pass "SSH drop-in config exists"
+    # SSH server (admin-provisioned; only checked in --admin runs)
+    if is_admin; then
+        if sudo systemctl is-active ssh &>/dev/null; then
+            check_pass "SSH server is running"
+            if [[ -f "/etc/ssh/sshd_config.d/99-custom.conf" ]]; then
+                check_pass "SSH drop-in config exists"
+            else
+                check_warn "SSH drop-in config missing"
+            fi
         else
-            check_warn "SSH drop-in config missing"
+            check_warn "SSH server not running"
         fi
-    else
-        check_warn "SSH server not running"
     fi
 
     # Key packages

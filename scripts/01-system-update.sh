@@ -7,6 +7,8 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — system-wide; runs only with `bootstrap.sh --admin`
+
 log_section "System Update"
 check_not_root
 

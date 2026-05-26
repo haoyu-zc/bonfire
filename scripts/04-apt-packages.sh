@@ -6,6 +6,8 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — system-wide apt installs; runs only with `bootstrap.sh --admin`
+
 [[ "$OS" == "linux" ]] || {
     log_info "Skipping apt packages (not Linux)"
     exit 0
