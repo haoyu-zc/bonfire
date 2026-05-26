@@ -41,7 +41,7 @@ All installed cross-platform via [mise](https://mise.jdx.dev/) — see
 `dotfiles/mise/.config/mise/config.toml` for the source of truth.
 
 - **Runtimes**: Node LTS, Python 3.12, Neovim stable (with [LazyVim](https://www.lazyvim.org/))
-- **Shell tools**: fzf, zoxide, ripgrep, bat, fd, eza, starship, jq, yq, gh
+- **Shell tools**: fzf, zoxide, ripgrep, bat, fd, eza, starship, jq, yq
 - **Git**: lazygit, delta, git-lfs
 - **Python**: uv, ruff
 - **TUI / terminal**: zellij, gum, yazi
@@ -50,7 +50,8 @@ All installed cross-platform via [mise](https://mise.jdx.dev/) — see
 Shell-facing tools (`starship`, `fzf`, `zoxide`, `eza`, `bat`) are pinned to
 major versions so a fresh-machine bootstrap a year from now won't pull a
 surprise breaking 2.0 that changes your daily-driver behavior. Fast-moving
-tools (`ruff`, `uv`, `gh`) stay on `"latest"` to get fixes.
+tools (`ruff`, `uv`) stay on `"latest"` to get fixes. (`gh` is installed
+system-wide via apt instead — see below.)
 
 > `tldr` (tealdeer) is **not** managed by mise. On macOS it's a Homebrew
 > formula (`[brew] formulae` in `config/packages.toml`); on Linux,
@@ -60,9 +61,9 @@ tools (`ruff`, `uv`, `gh`) stay on `"latest"` to get fixes.
 
 ### apt packages (Linux)
 
-Defined in `config/packages.toml [apt] packages`. Two third-party apt repos
-(`[apt.repos.google-chrome]`, `[apt.repos.vscode]`) are wired in
-`scripts/03-apt-repos.sh` before install.
+Defined in `config/packages.toml [apt] packages`. Three third-party apt repos
+(`[apt.repos.google-chrome]`, `[apt.repos.vscode]`, `[apt.repos.github-cli]`)
+are wired in `scripts/03-apt-repos.sh` before install.
 
 - **Build essentials**: build-essential, curl, wget, git, stow, unzip, zip,
   ca-certificates, gnupg, software-properties-common
@@ -72,7 +73,11 @@ Defined in `config/packages.toml [apt] packages`. Two third-party apt repos
   zlib1g-dev, libreadline-dev, libsqlite3-dev, libncursesw5-dev, liblzma-dev
 - **System tools**: htop, btop, tree, ncdu
 - **Containers**: podman, podman-compose, buildah
-- **From third-party repos**: google-chrome-stable, code (VS Code)
+- **From third-party repos**: google-chrome-stable, code (VS Code), gh (GitHub
+  CLI — installed before mise; `07-mise.sh` reads `gh auth token` to give mise a
+  GitHub token. If no token is present the bootstrap **stops with instructions**
+  rather than hitting the API rate limit — authenticate gh (or set
+  `GITHUB_TOKEN`) and resume with `bash bootstrap.sh --from 07-mise.sh`)
 
 ### Flatpak apps (Linux)
 
