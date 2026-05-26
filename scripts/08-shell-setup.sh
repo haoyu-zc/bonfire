@@ -14,7 +14,7 @@ check_not_root
 # =============================================================================
 if command_exists zsh; then
     log_success "zsh already installed: $(zsh --version)"
-else
+elif is_admin; then
     if [[ "$OS" == "linux" ]]; then
         log_info "Installing zsh via apt..."
         sudo apt-get install -y zsh
@@ -26,6 +26,10 @@ else
             ensure_brew_formula zsh
         fi
     fi
+else
+    log_warn "zsh is not installed — ask the admin to run 'bootstrap.sh --admin' first."
+    log_success "Shell setup skipped (no zsh)"
+    exit 0
 fi
 
 ZSH_PATH="$(command -v zsh)"
@@ -39,15 +43,22 @@ CURRENT_SHELL="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7 || dscl . -read
 if [[ "$CURRENT_SHELL" == "$ZSH_PATH" ]]; then
     log_success "zsh is already the default shell"
 else
-    # Ensure zsh is in /etc/shells
+    # Ensure zsh is in /etc/shells (admin-only write; chsh needs it listed)
     if ! grep -qF "$ZSH_PATH" /etc/shells; then
-        log_info "Adding $ZSH_PATH to /etc/shells..."
-        echo "$ZSH_PATH" | sudo tee -a /etc/shells
+        if is_admin; then
+            log_info "Adding $ZSH_PATH to /etc/shells..."
+            echo "$ZSH_PATH" | sudo tee -a /etc/shells
+        else
+            log_warn "$ZSH_PATH not in /etc/shells (admin adds it) — chsh may fail."
+        fi
     fi
 
     log_info "Setting default shell to zsh for $USER..."
-    chsh -s "$ZSH_PATH" "$USER"
-    log_success "Default shell changed to zsh — restart your session to take effect"
+    if chsh -s "$ZSH_PATH" "$USER"; then
+        log_success "Default shell changed to zsh — restart your session to take effect"
+    else
+        log_warn "Could not change default shell — run manually: chsh -s $ZSH_PATH"
+    fi
 fi
 
 # =============================================================================

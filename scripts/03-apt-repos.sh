@@ -6,6 +6,8 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — writes /etc/apt; runs only with `bootstrap.sh --admin`
+
 [[ "$OS" == "linux" ]] || {
     log_info "Skipping apt repos setup (not Linux)"
     exit 0

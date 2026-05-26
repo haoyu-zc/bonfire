@@ -8,6 +8,9 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — Homebrew (redundant on Linux: apt+mise cover its formulae);
+# runs only with `bootstrap.sh --admin` (and on macOS, where it's essential)
+
 log_section "Homebrew Setup"
 check_not_root
 

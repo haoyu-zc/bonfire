@@ -2,15 +2,30 @@
 
 [![ci](https://github.com/haoyu-zc/bonfire/actions/workflows/ci.yml/badge.svg)](https://github.com/haoyu-zc/bonfire/actions/workflows/ci.yml)
 
-Automated dev environment bootstrap for Pop!_OS / Ubuntu and macOS. One command installs everything.
+Automated dev environment bootstrap for Pop!_OS / Ubuntu and macOS.
+
+It runs in two modes, for a shared multi-user machine:
+
+- **Admin / full setup** (`--admin`) — system-wide provisioning done **once** by the
+  machine admin: apt repos + packages, Flatpak apps, SSH server, Homebrew, desktop
+  settings, plus every per-user step. Also the mode for macOS / single-user machines.
+- **Per-user** (default, no flag) — what each additional lab user runs in their own
+  account: mise + CLI tools, dotfiles, zsh as their default shell, AppImages, and their
+  `~/.ssh` scaffold. No sudo needed; assumes the box was already `--admin`-provisioned
+  (so the shared apt/system tools — stow, zsh, gh — already exist).
 
 ## Quick Start
 
 ```bash
 git clone git@github.com:haoyu-zc/bonfire.git ~/bonfire   # any path you like
 cd ~/bonfire
-bash bootstrap.sh --dry-run --yes    # preview package-install steps (see below for scope)
-bash bootstrap.sh                    # actually run it (asks for confirmation)
+
+# First time on a machine (admin) — and all macOS / single-user setups:
+bash bootstrap.sh --admin --dry-run --yes   # preview
+bash bootstrap.sh --admin                   # run it (asks for confirmation)
+
+# Each additional lab user, in their own account — per-user dev env only:
+bash bootstrap.sh
 ```
 
 The repo derives its own location at runtime, so you can clone it anywhere — no
@@ -22,6 +37,20 @@ stow conflict-backup `mv` via `scripts/_lib.sh:run()` and prints them as
 SSH server config, desktop/keyboard settings, the `setup.log` itself. Use
 `--only` to scope what runs (e.g., `--dry-run --only "04-apt-packages 07-mise
 09-dotfiles"`). Add `--yes` to skip prompts.
+
+### Run modes — which steps run
+
+`--admin` runs all 12 steps. The default (per-user) run executes only the per-user steps
+and skips the system parts of mixed steps:
+
+- **Admin-only** (skipped without `--admin`): `01-system-update`, `02-homebrew`,
+  `03-apt-repos`, `04-apt-packages`, `05-flatpak`, `11-desktop-settings`.
+- **Per-user** (always run): `06-appimages`, `07-mise`, `09-dotfiles`, the `chsh` in
+  `08-shell-setup`, the `~/.ssh` scaffold in `10-ssh-server`, and `12-verify`.
+
+`bash bootstrap.sh --list` marks the admin-only steps. A per-user step that needs an
+admin-provided tool (e.g. `stow`, or `gh`/a GitHub token) stops with instructions if it's
+missing — run `--admin` (or ask the admin), then resume with `--from <step>`.
 
 ## What Gets Installed
 

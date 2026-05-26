@@ -6,6 +6,8 @@
 # shellcheck source=_lib.sh
 source "$(dirname "$0")/_lib.sh"
 
+# audience: admin — system-wide flatpak installs; runs only with `bootstrap.sh --admin`
+
 [[ "$OS" == "linux" ]] || {
     log_info "Skipping flatpak (not Linux)"
     exit 0

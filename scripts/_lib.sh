@@ -49,6 +49,14 @@ export LOG_FILE
 EXIT_ACTION_REQUIRED=78   # EX_CONFIG from sysexits.h
 export EXIT_ACTION_REQUIRED
 
+# Admin mode. 1 when bootstrap.sh is run with --admin (full system provisioning);
+# 0 for the default per-user run. bootstrap.sh sets+exports the real value after
+# arg parsing; this default lets a step sourced standalone behave as a user run.
+ADMIN="${ADMIN:-0}"
+export ADMIN
+# Predicate for gating privileged (sudo/system) sections inside mixed steps.
+is_admin() { [[ "${ADMIN:-0}" -eq 1 ]]; }
+
 # =============================================================================
 # Color Logging
 # =============================================================================
