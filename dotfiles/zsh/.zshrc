@@ -293,31 +293,36 @@ fi
 # Let starship handle conda env display
 export CONDA_CHANGEPS1=false
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/haoyu/miniforge3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/haoyu/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/haoyu/miniforge3/etc/profile.d/conda.sh"
+# >>> conda / mamba initialize >>>
+# Portable miniforge/conda/mamba init. The stock `conda init` / `mamba shell
+# init` blocks bake in an absolute install path (e.g. /home/<someone>/miniforge3),
+# which breaks for every other user when this .zshrc is shared via stow. Instead
+# we resolve the install under $HOME (override with CONDA_ROOT) and no-op cleanly
+# if it isn't present, so this dotfile works for any user — with or without conda.
+__conda_root="${CONDA_ROOT:-$HOME/miniforge3}"
+if [ -d "$__conda_root" ]; then
+    __conda_setup="$("$__conda_root/bin/conda" 'shell.zsh' 'hook' 2>/dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    elif [ -f "$__conda_root/etc/profile.d/conda.sh" ]; then
+        . "$__conda_root/etc/profile.d/conda.sh"
     else
-        export PATH="/home/haoyu/miniforge3/bin:$PATH"
+        export PATH="$__conda_root/bin:$PATH"
+    fi
+    unset __conda_setup
+
+    # mamba ships with miniforge — wire it up only if the binary exists.
+    if [ -x "$__conda_root/bin/mamba" ]; then
+        export MAMBA_EXE="$__conda_root/bin/mamba"
+        export MAMBA_ROOT_PREFIX="$__conda_root"
+        __mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2>/dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__mamba_setup"
+        else
+            alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
+        fi
+        unset __mamba_setup
     fi
 fi
-unset __conda_setup
-# <<< conda initialize <<<
-
-
-# >>> mamba initialize >>>
-# !! Contents within this block are managed by 'mamba shell init' !!
-export MAMBA_EXE='/home/haoyu/miniforge3/bin/mamba';
-export MAMBA_ROOT_PREFIX='/home/haoyu/miniforge3';
-__mamba_setup="$("$MAMBA_EXE" shell hook --shell zsh --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__mamba_setup"
-else
-    alias mamba="$MAMBA_EXE"  # Fallback on help from mamba activate
-fi
-unset __mamba_setup
-# <<< mamba initialize <<<
+unset __conda_root
+# <<< conda / mamba initialize <<<
