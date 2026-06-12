@@ -1,9 +1,11 @@
-[user]
-	# Set these before committing:
-	#   git config --global user.name "Your Name"
-	#   git config --global user.email "you@example.com"
-	name = Haoyu Zhang
-	email = haoyu_z@outlook.com
+# Identity is intentionally NOT stored here — this file is stowed verbatim to
+# every machine/user, so a hardcoded name/email would leak across users.
+# Your personal identity lives in ~/.gitconfig.local (untracked, per-user),
+# which bootstrap creates for you (scripts/09-dotfiles.sh). To set or change it:
+#   git config --file ~/.gitconfig.local user.name  "Your Name"
+#   git config --file ~/.gitconfig.local user.email "you@example.com"
+[include]
+	path = ~/.gitconfig.local
 
 [core]
 	pager = delta

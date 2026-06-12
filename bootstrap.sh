@@ -304,8 +304,9 @@ else
     log_info ""
     log_info "Next steps:"
     log_info "  1. Restart your terminal (or run: exec zsh)"
-    log_info "  2. Configure git: git config --global user.name 'Your Name'"
-    log_info "  3. Configure git: git config --global user.email 'you@example.com'"
-    log_info "  4. Add your SSH key to ~/.ssh/authorized_keys"
-    log_info "  5. Run: make test  (to verify everything)"
+    log_info "  2. Verify your git identity: git config user.name && git config user.email"
+    log_info "     (set during dotfiles step; edit ~/.gitconfig.local to change it —"
+    log_info "      do NOT use 'git config --global', which writes into the stowed repo file)"
+    log_info "  3. Add your SSH key to ~/.ssh/authorized_keys"
+    log_info "  4. Run: make test  (to verify everything)"
 fi

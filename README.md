@@ -314,11 +314,34 @@ still needs to be installed.
 ## After Setup
 
 1. **Restart your shell**: `exec zsh` or open a new terminal
-2. **Configure git identity**:
+2. **Verify your git identity**: the dotfiles step prompts for your name/email
+   and writes them to `~/.gitconfig.local` (untracked, per-user). Check with:
    ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "you@example.com"
+   git config user.name && git config user.email
    ```
+   To change it later, edit `~/.gitconfig.local` or run:
+   ```bash
+   git config --file ~/.gitconfig.local user.name  "Your Name"
+   git config --file ~/.gitconfig.local user.email "you@example.com"
+   ```
+   > Don't use `git config --global …` — `~/.gitconfig` is a symlink into this
+   > repo, so a global write would modify the tracked dotfile and leak your
+   > identity into the repo. The stowed `.gitconfig` carries no identity; it
+   > `[include]`s `~/.gitconfig.local` instead.
+   >
+   > **Upgrading an older clone?** If you previously ran `git config --global`,
+   > that write landed in the symlinked repo file, so `git status` in the repo
+   > shows `dotfiles/git/.gitconfig` as modified and `git pull` will conflict.
+   > Recover by lifting your identity out and discarding the tracked edit (run
+   > these from the repo directory; read with `--global` to get the leaked
+   > value, not a repo-local override):
+   > ```bash
+   > cd ~/bonfire    # or wherever you cloned it
+   > git config --file ~/.gitconfig.local user.name  "$(git config --global user.name)"
+   > git config --file ~/.gitconfig.local user.email "$(git config --global user.email)"
+   > git checkout -- dotfiles/git/.gitconfig
+   > git pull
+   > ```
 3. **Connect via SSH from another machine** (Linux):
 
    Password auth is disabled by default. To copy your key over:

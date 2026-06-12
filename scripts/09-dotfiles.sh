@@ -12,6 +12,20 @@ check_not_root
 DOTFILES_DIR="$REPO_DIR/dotfiles"
 
 # =============================================================================
+# Capture any pre-existing git identity BEFORE stowing.
+# If a user previously ran `git config --global user.name …`, that write landed
+# in ~/.gitconfig — which (post-stow) is a symlink into this repo. Once we
+# re-stow the new identity-less .gitconfig, that value is gone. Read it now so
+# we can migrate it into ~/.gitconfig.local further down.
+# =============================================================================
+GIT_PRESEED_NAME=""
+GIT_PRESEED_EMAIL=""
+if command_exists git; then
+    GIT_PRESEED_NAME="$(git config --global user.name 2>/dev/null || true)"
+    GIT_PRESEED_EMAIL="$(git config --global user.email 2>/dev/null || true)"
+fi
+
+# =============================================================================
 # Ensure GNU Stow is installed
 # =============================================================================
 if ! command_exists stow; then
@@ -119,4 +133,65 @@ if [[ $ERRORS -gt 0 ]]; then
     log_warn "$ERRORS stow conflict(s). Resolve manually or use 'make check' to see drift."
 else
     log_success "All dotfile packages stowed successfully"
+fi
+
+# =============================================================================
+# Per-user git identity
+# The stowed ~/.gitconfig holds no name/email (it's shared across users) and
+# instead includes ~/.gitconfig.local. Create that local, untracked file here
+# so each user gets their own identity instead of inheriting the repo owner's.
+# =============================================================================
+GIT_LOCAL="$HOME/.gitconfig.local"
+# Consider identity "already set" only when BOTH name and email are present —
+# a half-populated local file should fall through and get completed.
+existing_name=""
+existing_email=""
+if command_exists git && [[ -f "$GIT_LOCAL" ]]; then
+    existing_name="$(git config --file "$GIT_LOCAL" user.name 2>/dev/null || true)"
+    existing_email="$(git config --file "$GIT_LOCAL" user.email 2>/dev/null || true)"
+fi
+
+if ! command_exists git; then
+    log_warn "git not installed yet — skipping ~/.gitconfig.local setup (re-run after git is available)"
+elif [[ -n "$existing_name" && -n "$existing_email" ]]; then
+    log_success "git identity already set in ~/.gitconfig.local ($existing_name <$existing_email>)"
+elif [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    log_info "Would create ~/.gitconfig.local with your git identity"
+else
+    # Seed coherently from ONE source so we never pair a name from the local
+    # file with an email from a stale global (or vice versa): if the local
+    # file already has either field, treat it as authoritative and let the
+    # prompt fill the gap; otherwise fall back to the pre-stow global identity.
+    if [[ -n "$existing_name" || -n "$existing_email" ]]; then
+        git_name="$existing_name"
+        git_email="$existing_email"
+    else
+        git_name="$GIT_PRESEED_NAME"
+        git_email="$GIT_PRESEED_EMAIL"
+    fi
+
+    if [[ "${AUTO_YES:-0}" -eq 0 ]]; then
+        printf -- '%bGit user name%b [%s]: ' "$C_CYAN" "$C_RESET" "${git_name:-Your Name}"
+        if ! read -r answer; then answer=""; fi
+        [[ -n "$answer" ]] && git_name="$answer"
+        printf -- '%bGit email%b [%s]: ' "$C_CYAN" "$C_RESET" "${git_email:-you@example.com}"
+        if ! read -r answer; then answer=""; fi
+        [[ -n "$answer" ]] && git_email="$answer"
+    fi
+
+    cat >"$GIT_LOCAL" <<EOF
+# Local, untracked git identity. Edit freely — this file lives only in your
+# home directory and is never part of the bonfire repo or stow. Update with:
+#   git config --file ~/.gitconfig.local user.name  "Your Name"
+#   git config --file ~/.gitconfig.local user.email "you@example.com"
+[user]
+	name = ${git_name:-Your Name}
+	email = ${git_email:-you@example.com}
+EOF
+
+    if [[ -z "$git_name" || -z "$git_email" ]]; then
+        log_warn "Wrote ~/.gitconfig.local with placeholders — edit it before committing"
+    else
+        log_success "Wrote git identity to ~/.gitconfig.local ($git_name <$git_email>)"
+    fi
 fi
