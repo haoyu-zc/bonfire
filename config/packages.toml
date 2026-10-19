@@ -61,11 +61,6 @@ packages = [
     "tree",
     "ncdu",
 
-    # Podman (rootless containers, available in Ubuntu repos)
-    "podman",
-    "podman-compose",
-    "buildah",
-
     # From third-party repos
     "google-chrome-stable",
     "code",
@@ -102,5 +97,4 @@ casks = [
     "raycast",
     "karabiner-elements",
     "slack",
-    "podman-desktop",
 ]

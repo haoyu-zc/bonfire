@@ -128,24 +128,6 @@ if [[ "$OS" == "linux" ]]; then
         fi
     fi
 
-    # Podman (rootless — no daemon or group to check)
-    log_info "Checking Podman..."
-    if command_exists podman; then
-        log_success "PASS: podman available"
-        PASS=$((PASS + 1))
-
-        if podman info &>/dev/null 2>&1; then
-            log_success "PASS: podman info succeeds (rootless)"
-            PASS=$((PASS + 1))
-        else
-            log_warn "WARN: podman info failed"
-            WARN=$((WARN + 1))
-        fi
-    else
-        log_warn "WARN: podman not installed"
-        WARN=$((WARN + 1))
-    fi
-
 elif [[ "$OS" == "darwin" ]]; then
     log_info "Checking macOS services..."
 

@@ -10,25 +10,64 @@ log_section "Shell Setup"
 check_not_root
 
 # =============================================================================
-# Install Zsh
+# Install Zsh (+ the plugins .zshrc sources)
+# --admin installs them outright. A per-user run on Linux offers to install
+# them when the user can sudo (sudo/admin/wheel group), since without root
+# there's no clean way to get zsh. Under --yes that only happens when sudo
+# works without a password; otherwise the step is skipped with a hint.
 # =============================================================================
-if command_exists zsh; then
-    log_success "zsh already installed: $(zsh --version)"
-elif is_admin; then
-    if [[ "$OS" == "linux" ]]; then
-        log_info "Installing zsh via apt..."
-        sudo apt-get install -y zsh
-        log_success "zsh installed"
-    elif [[ "$OS" == "darwin" ]]; then
-        # Zsh ships with macOS; install newer version via brew if desired
-        log_info "Zsh should be pre-installed on macOS"
-        if command_exists brew; then
-            ensure_brew_formula zsh
+ZSH_APT_PKGS=(zsh zsh-autosuggestions zsh-syntax-highlighting)
+
+can_sudo() {
+    sudo -n true 2>/dev/null || id -Gn | tr ' ' '\n' | grep -qxE 'sudo|admin|wheel'
+}
+
+if [[ "$OS" == "linux" ]]; then
+    MISSING_PKGS=()
+    for pkg in "${ZSH_APT_PKGS[@]}"; do
+        apt_installed "$pkg" || MISSING_PKGS+=("$pkg")
+    done
+
+    if [[ ${#MISSING_PKGS[@]} -eq 0 ]]; then
+        log_success "zsh + plugins already installed: $(zsh --version)"
+    else
+        install_ok=0
+        if is_admin; then
+            install_ok=1
+        elif can_sudo; then
+            if [[ "${AUTO_YES:-0}" -eq 1 ]]; then
+                sudo -n true 2>/dev/null && install_ok=1
+            else
+                printf -- '%bNot installed: %s. Install with sudo apt now? [Y/n] %b' \
+                    "$C_YELLOW" "${MISSING_PKGS[*]}" "$C_RESET"
+                if ! read -r answer; then answer="n"; fi
+                [[ "$answer" != "n" && "$answer" != "N" ]] && install_ok=1
+            fi
+        fi
+
+        if [[ $install_ok -eq 1 ]]; then
+            log_info "Installing ${MISSING_PKGS[*]} via apt..."
+            run sudo apt-get install -y "${MISSING_PKGS[@]}"
+            log_success "Installed ${MISSING_PKGS[*]}"
+        elif ! command_exists zsh; then
+            log_warn "zsh is not installed. Install it with:"
+            log_warn "    sudo apt-get install -y ${ZSH_APT_PKGS[*]}"
+            log_warn "(or ask the admin to run 'bootstrap.sh --admin'), then: bash bootstrap.sh --only shell"
+            log_success "Shell setup skipped (no zsh)"
+            exit 0
         fi
     fi
-else
-    log_warn "zsh is not installed — ask the admin to run 'bootstrap.sh --admin' first."
-    log_success "Shell setup skipped (no zsh)"
+elif [[ "$OS" == "darwin" ]]; then
+    # Zsh ships with macOS; install newer version via brew if desired
+    if command_exists zsh; then
+        log_success "zsh already installed: $(zsh --version)"
+    elif command_exists brew; then
+        ensure_brew_formula zsh
+    fi
+fi
+
+if [[ "${DRY_RUN:-0}" -eq 1 ]] && ! command_exists zsh; then
+    log_info "Would set zsh as the default shell"
     exit 0
 fi
 

@@ -28,6 +28,9 @@ fi
 # =============================================================================
 # Ensure GNU Stow is installed
 # =============================================================================
+# A per-user stow (built below) lives in ~/.local/bin, which may not be on PATH yet.
+export PATH="$HOME/.local/bin:$PATH"
+
 if ! command_exists stow; then
     if is_admin; then
         if [[ "$OS" == "linux" ]]; then
@@ -37,12 +40,34 @@ if ! command_exists stow; then
             setup_homebrew_path
             ensure_brew_formula stow
         fi
+    elif command_exists perl && command_exists make; then
+        # No sudo in a per-user run: build GNU Stow (a perl script) into
+        # ~/.local from the upstream tarball. Only perl + make are needed.
+        log_info "Installing stow into ~/.local (per-user, from GNU source)..."
+        STOW_BUILD="$(mktemp -d)"
+        trap 'rm -rf "$STOW_BUILD"' EXIT
+        run curl -fsSL https://ftp.gnu.org/gnu/stow/stow-latest.tar.gz -o "$STOW_BUILD/stow.tar.gz"
+        run tar -xzf "$STOW_BUILD/stow.tar.gz" -C "$STOW_BUILD" --strip-components=1
+        # configure warns about missing test-only perl modules (Test::Output);
+        # the install itself doesn't need them. Build output is only shown if
+        # the build fails — it's noise otherwise.
+        if ! run bash -c 'cd "$1" && { ./configure --prefix="$HOME/.local" && make install; } >build.log 2>&1' \
+            _ "$STOW_BUILD"; then
+            cat "$STOW_BUILD/build.log"
+            log_error "Building stow failed (output above)"
+            exit 1
+        fi
     else
-        log_error "stow is required but not installed."
+        log_error "stow is required but not installed, and perl/make are missing to build it."
         log_error "Ask the admin to run 'bash bootstrap.sh --admin' (installs stow system-wide),"
         log_error "then resume: bash bootstrap.sh --from 09-dotfiles"
         exit "$EXIT_ACTION_REQUIRED"
     fi
+fi
+
+if [[ "${DRY_RUN:-0}" -eq 1 ]] && ! command_exists stow; then
+    log_info "Would install stow — skipping the rest of the dotfiles step in dry-run"
+    exit 0
 fi
 
 if ! command_exists stow; then
@@ -53,50 +78,60 @@ fi
 log_success "stow available: $(stow --version | head -1)"
 
 # =============================================================================
-# Back up any real files that would conflict with stow
+# Real files that would block stowing a package (one ~-relative path per line)
 # =============================================================================
-backup_conflicts() {
-    local pkg="$1"
-    # Dry-run stow and parse conflict lines to find blocking real files.
-    # Use || true throughout: stow exits non-zero on conflicts, grep exits
-    # non-zero when no matches — both are fine here.
-    local conflicts
-    conflicts="$(stow -t "$HOME" --restow --simulate "$pkg" 2>&1 || true)"
-    conflicts="$(printf '%s\n' "$conflicts" \
-        | grep "existing target is neither a link nor a directory" \
-        | sed 's/.*: //')" || true
+stow_conflicts() {
+    local pkg="$1" relpath
+    # stow exits non-zero on conflicts; that's the case we're parsing. The
+    # message differs by version: 2.3 ("existing target is neither a link nor
+    # a directory: PATH") vs 2.4 ("over existing target PATH since neither …").
+    stow -t "$HOME" --restow --simulate "$pkg" 2>&1 \
+        | sed -nE 's/.*existing target is neither a link nor a directory: (.*)$/\1/p
+                  s/.*over existing target (.*) since neither a link nor a directory.*/\1/p' \
+        | while IFS= read -r relpath; do
+            [[ -f "$HOME/$relpath" && ! -L "$HOME/$relpath" ]] && printf '%s\n' "$relpath"
+        done || true
+}
 
+# Back up any real files that would conflict with stow
+backup_conflicts() {
+    local pkg="$1" relpath
     while IFS= read -r relpath; do
         [[ -z "$relpath" ]] && continue
-        local target="$HOME/$relpath"
-        if [[ -f "$target" && ! -L "$target" ]]; then
-            log_warn "Backing up real file: ~/$relpath -> ~/${relpath}.bak"
-            run mv "$target" "${target}.bak"
-        fi
-    done <<<"$conflicts"
+        log_warn "Backing up real file: ~/$relpath -> ~/${relpath}.bak"
+        run mv "$HOME/$relpath" "$HOME/${relpath}.bak"
+    done < <(stow_conflicts "$pkg")
 }
 
 # =============================================================================
-# Pre-flight: surface drift before silently backing real files up to *.bak
-# `dotcheck` exits 1 on any drift (missing symlinks OR real-file conflicts).
-# Wrap in `if !` so a non-zero exit doesn't trip set -e — non-zero here just
-# means "stowing has work to do," not "fatal."
+# Pre-flight: only real files that stow would replace need a decision. Missing
+# links are what stowing creates, so they don't warrant a prompt (run
+# `make check` for the full drift report).
 # =============================================================================
-if command_exists stow && [[ -x "$REPO_DIR/bin/dotcheck" ]]; then
-    log_info "Pre-flight drift report:"
-    if ! "$REPO_DIR/bin/dotcheck" >&2; then
-        if [[ "${AUTO_YES:-0}" -eq 0 ]]; then
-            printf -- '%bProceed with stow (real-file conflicts will be backed up to *.bak)? [y/N] %b' \
-                "$C_YELLOW" "$C_RESET"
-            # `read` returns non-zero on closed stdin (e.g., script piped from
-            # a non-tty); guard so set -e doesn't abort before we can default.
-            if ! read -r answer; then answer=""; fi
-            if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
-                log_error "Aborted at dotcheck pre-flight."
-                exit 1
-            fi
-        else
-            log_warn "Proceeding past drift in --yes mode"
+cd "$DOTFILES_DIR" || exit 1
+
+CONFLICTS=()
+for pkg_dir in */; do
+    pkg="${pkg_dir%/}"
+    while IFS= read -r relpath; do
+        [[ -n "$relpath" ]] && CONFLICTS+=("$relpath")
+    done < <(stow_conflicts "$pkg")
+done
+
+if [[ ${#CONFLICTS[@]} -gt 0 ]]; then
+    log_warn "These existing files will be moved to *.bak and replaced by repo symlinks:"
+    for relpath in "${CONFLICTS[@]}"; do
+        log_warn "    ~/$relpath"
+    done
+    if [[ "${AUTO_YES:-0}" -eq 0 ]]; then
+        printf -- '%bBack them up and continue? [y/N] %b' "$C_YELLOW" "$C_RESET"
+        # `read` returns non-zero on closed stdin (e.g., script piped from
+        # a non-tty); guard so set -e doesn't abort before we can default.
+        if ! read -r answer; then answer=""; fi
+        if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+            log_error "Left your files untouched. Move or merge them yourself, then resume:"
+            log_error "    bash bootstrap.sh --from 09-dotfiles"
+            exit "$EXIT_ACTION_REQUIRED"
         fi
     fi
 fi
@@ -105,7 +140,6 @@ fi
 # Stow each dotfile package
 # =============================================================================
 log_info "Stowing dotfile packages from $DOTFILES_DIR..."
-cd "$DOTFILES_DIR" || exit 1
 
 ERRORS=0
 for pkg_dir in */; do

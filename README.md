@@ -38,6 +38,11 @@ SSH server config, desktop/keyboard settings, the `setup.log` itself. Use
 `--only` to scope what runs (e.g., `--dry-run --only "04-apt-packages 07-mise
 09-dotfiles"`). Add `--yes` to skip prompts.
 
+Every run appends its full terminal output (step output and command errors, colors
+stripped) to `setup.log` in the repo — or `~/.local/state/bonfire/setup.log` if the
+repo isn't writable by you. Set `BONFIRE_LOG=/path/to/file` to put it elsewhere;
+`make log` tails it.
+
 ### Run modes — which steps run
 
 `--admin` runs all 12 steps. The default (per-user) run executes only the per-user steps
@@ -49,8 +54,10 @@ and skips the system parts of mixed steps:
   `08-shell-setup`, the `~/.ssh` scaffold in `10-ssh-server`, and `12-verify`.
 
 `bash bootstrap.sh --list` marks the admin-only steps. A per-user step that needs an
-admin-provided tool (e.g. `stow`, or `gh`/a GitHub token) stops with instructions if it's
-missing — run `--admin` (or ask the admin), then resume with `--from <step>`.
+admin-provided tool (e.g. `gh`/a GitHub token) stops with instructions if it's
+missing — run `--admin` (or ask the admin), then resume with `--from <step>`. A missing
+`stow` is built per-user into `~/.local` from GNU source (needs only `perl` + `make`). A missing
+`zsh` (+ its plugins) is offered as a `sudo apt` install when the user is a sudoer.
 
 ## What Gets Installed
 
@@ -101,7 +108,6 @@ are wired in `scripts/03-apt-repos.sh` before install.
 - **Dev libraries** (for compiling Python etc.): libssl-dev, libffi-dev,
   zlib1g-dev, libreadline-dev, libsqlite3-dev, libncursesw5-dev, liblzma-dev
 - **System tools**: htop, btop, tree, ncdu
-- **Containers**: podman, podman-compose, buildah
 - **From third-party repos**: google-chrome-stable, code (VS Code), gh (GitHub
   CLI — installed before mise; `07-mise.sh` reads `gh auth token` to give mise a
   GitHub token. If no token is present the bootstrap **stops with instructions**
@@ -141,7 +147,6 @@ Defined in `config/packages.toml [brew] casks`.
 - **Screenshot**: snipaste
 - **Terminal**: wezterm
 - **Keyboard remap**: karabiner-elements
-- **Containers**: podman-desktop
 
 ## Usage
 

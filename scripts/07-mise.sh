@@ -53,7 +53,9 @@ export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG"
 # token is read inside the `if` condition to stay set-e-safe.
 # =============================================================================
 if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_API_TOKEN:-}" && -z "${MISE_GITHUB_TOKEN:-}" ]]; then
-    if command_exists gh && GITHUB_TOKEN="$(gh auth token 2>/dev/null)" && [[ -n "$GITHUB_TOKEN" ]]; then
+    # No system gh (per-user run without --admin): use mise's, as suggested below.
+    if command_exists gh; then GH=(gh); else GH=(mise exec gh@latest -- gh); fi
+    if GITHUB_TOKEN="$("${GH[@]}" auth token 2>/dev/null)" && [[ -n "$GITHUB_TOKEN" ]]; then
         export GITHUB_TOKEN
         log_info "Using GitHub token from gh CLI (avoids API rate limits)"
     elif [[ "${DRY_RUN:-0}" -eq 1 ]]; then
@@ -66,7 +68,13 @@ if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_API_TOKEN:-}" && -z "${MISE_GITHUB_
         log_error "Fix it once. Run this directly at your shell prompt (it's interactive,"
         log_error "and works best outside the bootstrap):"
         log_error ""
-        log_error "    gh auth login"
+        if command_exists gh; then
+            log_error "    gh auth login"
+        else
+            # Don't suggest `mise use -g gh`: it writes ~/.config/mise/config.toml,
+            # which then conflicts with the stowed one in 09-dotfiles.
+            log_error "    mise exec gh@latest -- gh auth login"
+        fi
         log_error ""
         log_error "  - choose 'Login with a web browser'"
         log_error "  - gh prints a one-time code, e.g.  ABCD-1234"
@@ -100,17 +108,33 @@ log_info "Run 'mise ls' to see installed tools"
 # =============================================================================
 if [[ "$OS" == "linux" ]]; then
     TLDR_BIN="$HOME/.local/bin/tldr"
-    LATEST_TLDR="https://github.com/dbrgn/tealdeer/releases/latest/download/tealdeer-linux-x86_64-musl"
+    # Release assets are per-arch; a mismatched binary fails with "Exec format error".
+    case "$(uname -m)" in
+        x86_64 | amd64) TLDR_ASSET="tealdeer-linux-x86_64-musl" ;;
+        aarch64 | arm64) TLDR_ASSET="tealdeer-linux-aarch64-musl" ;;
+        armv7l) TLDR_ASSET="tealdeer-linux-armv7-musleabihf" ;;
+        *) TLDR_ASSET="" ;;
+    esac
+    LATEST_TLDR="https://github.com/tealdeer-rs/tealdeer/releases/latest/download/$TLDR_ASSET"
 
     if command_exists tldr && tldr --version 2>/dev/null | grep -qv "1\.6\."; then
         log_success "tealdeer already installed: $(tldr --version)"
+    elif [[ -z "$TLDR_ASSET" ]]; then
+        log_warn "No tealdeer binary for arch $(uname -m) — skipping"
     else
-        log_info "Installing tealdeer (latest binary from GitHub releases)..."
-        curl -fsSL "$LATEST_TLDR" -o "$TLDR_BIN"
-        chmod +x "$TLDR_BIN"
-        log_success "tealdeer installed: $("$TLDR_BIN" --version)"
+        log_info "Installing tealdeer (latest $TLDR_ASSET from GitHub releases)..."
+        mkdir -p "$(dirname "$TLDR_BIN")"
+        run curl -fsSL "$LATEST_TLDR" -o "$TLDR_BIN"
+        run chmod +x "$TLDR_BIN"
+        if [[ "${DRY_RUN:-0}" -eq 0 ]]; then
+            if ! "$TLDR_BIN" --version >/dev/null 2>&1; then
+                log_error "Downloaded tealdeer binary does not run on this machine ($(uname -m))"
+                exit 1
+            fi
+            log_success "tealdeer installed: $("$TLDR_BIN" --version)"
 
-        log_info "Updating tldr cache..."
-        "$TLDR_BIN" --update 2>/dev/null && log_success "tldr cache updated" || log_warn "tldr cache update failed — run 'tldr --update' manually"
+            log_info "Updating tldr cache..."
+            "$TLDR_BIN" --update && log_success "tldr cache updated" || log_warn "tldr cache update failed — run 'tldr --update' manually"
+        fi
     fi
 fi

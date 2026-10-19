@@ -234,9 +234,20 @@ fi
 # =============================================================================
 # Initialize log
 # =============================================================================
-mkdir -p "$(dirname "$LOG_FILE")"
 echo "=== bootstrap.sh started at $(date) ===" >>"$LOG_FILE"
-echo "OS=$OS DISTRO=$DISTRO" >>"$LOG_FILE"
+echo "OS=$OS DISTRO=$DISTRO ARCH=$(uname -m) USER=$(id -un) ADMIN=$ADMIN DRY_RUN=$DRY_RUN" >>"$LOG_FILE"
+
+# Capture everything (step output, command errors, not just log_* lines) into
+# the log for debugging, while still showing it on the terminal. Colors are
+# decided now, before stdout becomes a pipe, and stripped from the log copy.
+if [[ -t 1 ]]; then BONFIRE_COLOR=1; else BONFIRE_COLOR=0; fi
+BONFIRE_LOG_CAPTURED=1
+export BONFIRE_COLOR BONFIRE_LOG_CAPTURED
+exec > >(tee >(sed -u 's/\x1b\[[0-9;]*[A-Za-z]//g' >>"$LOG_FILE")) 2>&1
+LOG_TEE_PID=$!
+# Flush the tee before exiting so the last lines aren't printed after the prompt.
+trap 'exec >&- 2>&-; wait "$LOG_TEE_PID" 2>/dev/null || true' EXIT
+log_info "Logging all output to $LOG_FILE"
 
 # =============================================================================
 # Run scripts
