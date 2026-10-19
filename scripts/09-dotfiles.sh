@@ -37,12 +37,31 @@ if ! command_exists stow; then
             setup_homebrew_path
             ensure_brew_formula stow
         fi
+    elif command_exists perl && command_exists make; then
+        # No sudo in a per-user run: build GNU Stow (a perl script) into
+        # ~/.local from the upstream tarball. Only perl + make are needed.
+        log_info "Installing stow into ~/.local (per-user, from GNU source)..."
+        STOW_BUILD="$(mktemp -d)"
+        trap 'rm -rf "$STOW_BUILD"' EXIT
+        run curl -fsSL https://ftp.gnu.org/gnu/stow/stow-latest.tar.gz -o "$STOW_BUILD/stow.tar.gz"
+        run tar -xzf "$STOW_BUILD/stow.tar.gz" -C "$STOW_BUILD" --strip-components=1
+        # configure warns about missing test-only perl modules (Test::Output);
+        # the install itself doesn't need them.
+        run bash -c 'cd "$1" && ./configure --prefix="$HOME/.local" && make install' _ "$STOW_BUILD"
     else
-        log_error "stow is required but not installed."
+        log_error "stow is required but not installed, and perl/make are missing to build it."
         log_error "Ask the admin to run 'bash bootstrap.sh --admin' (installs stow system-wide),"
         log_error "then resume: bash bootstrap.sh --from 09-dotfiles"
         exit "$EXIT_ACTION_REQUIRED"
     fi
+fi
+
+# A per-user stow lands in ~/.local/bin, which may not be on PATH yet.
+export PATH="$HOME/.local/bin:$PATH"
+
+if [[ "${DRY_RUN:-0}" -eq 1 ]] && ! command_exists stow; then
+    log_info "Would install stow — skipping the rest of the dotfiles step in dry-run"
+    exit 0
 fi
 
 if ! command_exists stow; then

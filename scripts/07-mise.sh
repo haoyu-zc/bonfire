@@ -100,17 +100,33 @@ log_info "Run 'mise ls' to see installed tools"
 # =============================================================================
 if [[ "$OS" == "linux" ]]; then
     TLDR_BIN="$HOME/.local/bin/tldr"
-    LATEST_TLDR="https://github.com/dbrgn/tealdeer/releases/latest/download/tealdeer-linux-x86_64-musl"
+    # Release assets are per-arch; a mismatched binary fails with "Exec format error".
+    case "$(uname -m)" in
+        x86_64 | amd64) TLDR_ASSET="tealdeer-linux-x86_64-musl" ;;
+        aarch64 | arm64) TLDR_ASSET="tealdeer-linux-aarch64-musl" ;;
+        armv7l) TLDR_ASSET="tealdeer-linux-armv7-musleabihf" ;;
+        *) TLDR_ASSET="" ;;
+    esac
+    LATEST_TLDR="https://github.com/tealdeer-rs/tealdeer/releases/latest/download/$TLDR_ASSET"
 
     if command_exists tldr && tldr --version 2>/dev/null | grep -qv "1\.6\."; then
         log_success "tealdeer already installed: $(tldr --version)"
+    elif [[ -z "$TLDR_ASSET" ]]; then
+        log_warn "No tealdeer binary for arch $(uname -m) — skipping"
     else
-        log_info "Installing tealdeer (latest binary from GitHub releases)..."
-        curl -fsSL "$LATEST_TLDR" -o "$TLDR_BIN"
-        chmod +x "$TLDR_BIN"
-        log_success "tealdeer installed: $("$TLDR_BIN" --version)"
+        log_info "Installing tealdeer (latest $TLDR_ASSET from GitHub releases)..."
+        mkdir -p "$(dirname "$TLDR_BIN")"
+        run curl -fsSL "$LATEST_TLDR" -o "$TLDR_BIN"
+        run chmod +x "$TLDR_BIN"
+        if [[ "${DRY_RUN:-0}" -eq 0 ]]; then
+            if ! "$TLDR_BIN" --version >/dev/null 2>&1; then
+                log_error "Downloaded tealdeer binary does not run on this machine ($(uname -m))"
+                exit 1
+            fi
+            log_success "tealdeer installed: $("$TLDR_BIN" --version)"
 
-        log_info "Updating tldr cache..."
-        "$TLDR_BIN" --update 2>/dev/null && log_success "tldr cache updated" || log_warn "tldr cache update failed — run 'tldr --update' manually"
+            log_info "Updating tldr cache..."
+            "$TLDR_BIN" --update && log_success "tldr cache updated" || log_warn "tldr cache update failed — run 'tldr --update' manually"
+        fi
     fi
 fi

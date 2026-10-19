@@ -41,7 +41,15 @@ detect_os
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export REPO_DIR
 
-LOG_FILE="$REPO_DIR/setup.log"
+# Override with BONFIRE_LOG. If the repo isn't writable by this user (e.g. a
+# shared checkout run per-user), fall back to the XDG state dir.
+if [[ -z "${LOG_FILE:-}" ]]; then
+    LOG_FILE="${BONFIRE_LOG:-$REPO_DIR/setup.log}"
+    if ! { [[ -w "$LOG_FILE" ]] || { [[ ! -e "$LOG_FILE" ]] && [[ -w "$(dirname "$LOG_FILE")" ]]; }; }; then
+        LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/bonfire/setup.log"
+    fi
+fi
+mkdir -p "$(dirname "$LOG_FILE")"
 export LOG_FILE
 
 # Exit code a step uses to demand the whole bootstrap halt (even under --yes),
@@ -60,8 +68,9 @@ is_admin() { [[ "${ADMIN:-0}" -eq 1 ]]; }
 # =============================================================================
 # Color Logging
 # =============================================================================
-# Colors (only when stdout is a terminal)
-if [[ -t 1 ]]; then
+# Colors (only when stdout is a terminal). bootstrap.sh pipes all output
+# through tee into the log, so it decides once and exports BONFIRE_COLOR.
+if [[ "${BONFIRE_COLOR:-}" == 1 || (-z "${BONFIRE_COLOR:-}" && -t 1) ]]; then
     C_RESET='\033[0m'
     C_BOLD='\033[1m'
     C_BLUE='\033[34m'
@@ -83,7 +92,10 @@ _log() {
     # treating a non-color expansion (e.g., "---" log_step prefix in non-tty
     # mode) as an option flag.
     printf -- "${color}${C_BOLD}${prefix}${C_RESET}${color} %s${C_RESET}\n" "$msg"
-    # Append plain text to log file
+    # Append plain text to log file, unless bootstrap.sh is already capturing
+    # all output into it (BONFIRE_LOG_CAPTURED=1) — then the line above lands
+    # there via tee, and writing again would duplicate it.
+    [[ "${BONFIRE_LOG_CAPTURED:-0}" -eq 1 ]] && return 0
     printf -- '[%s] [%s] %s\n' "$timestamp" "$level" "$msg" >>"$LOG_FILE"
 }
 
@@ -100,6 +112,7 @@ log_section() {
     printf "\n${C_BOLD}${C_BLUE}%s${C_RESET}\n" "$line"
     printf "${C_BOLD}${C_BLUE}  %s${C_RESET}\n" "$title"
     printf "${C_BOLD}${C_BLUE}%s${C_RESET}\n\n" "$line"
+    [[ "${BONFIRE_LOG_CAPTURED:-0}" -eq 1 ]] && return 0
     printf '\n[SECTION] %s\n' "$title" >>"$LOG_FILE"
 }
 
