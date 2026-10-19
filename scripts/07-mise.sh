@@ -53,7 +53,9 @@ export MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG"
 # token is read inside the `if` condition to stay set-e-safe.
 # =============================================================================
 if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_API_TOKEN:-}" && -z "${MISE_GITHUB_TOKEN:-}" ]]; then
-    if command_exists gh && GITHUB_TOKEN="$(gh auth token 2>/dev/null)" && [[ -n "$GITHUB_TOKEN" ]]; then
+    # No system gh (per-user run without --admin): use mise's, as suggested below.
+    if command_exists gh; then GH=(gh); else GH=(mise exec gh@latest -- gh); fi
+    if GITHUB_TOKEN="$("${GH[@]}" auth token 2>/dev/null)" && [[ -n "$GITHUB_TOKEN" ]]; then
         export GITHUB_TOKEN
         log_info "Using GitHub token from gh CLI (avoids API rate limits)"
     elif [[ "${DRY_RUN:-0}" -eq 1 ]]; then
@@ -66,7 +68,13 @@ if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_API_TOKEN:-}" && -z "${MISE_GITHUB_
         log_error "Fix it once. Run this directly at your shell prompt (it's interactive,"
         log_error "and works best outside the bootstrap):"
         log_error ""
-        log_error "    gh auth login"
+        if command_exists gh; then
+            log_error "    gh auth login"
+        else
+            # Don't suggest `mise use -g gh`: it writes ~/.config/mise/config.toml,
+            # which then conflicts with the stowed one in 09-dotfiles.
+            log_error "    mise exec gh@latest -- gh auth login"
+        fi
         log_error ""
         log_error "  - choose 'Login with a web browser'"
         log_error "  - gh prints a one-time code, e.g.  ABCD-1234"

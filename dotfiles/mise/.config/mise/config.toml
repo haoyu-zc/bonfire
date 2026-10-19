@@ -9,8 +9,9 @@
 #   change shell behavior.
 # - Fast-moving / mature tools (ruff, uv, jq, yq, lazygit, delta, ripgrep,
 #   fd, zellij, git-lfs) stay on "latest" — low regression risk + you want fixes.
-# - gh (GitHub CLI) is NOT managed here — it's installed system-wide via apt
-#   (config/packages.toml). 07-mise.sh reads `gh auth token` to lift mise's
+# - gh (GitHub CLI) is also installed system-wide via apt in --admin runs
+#   (config/packages.toml); it's listed here too so per-user runs on a box
+#   without it still get one. 07-mise.sh reads `gh auth token` to lift mise's
 #   GitHub API rate limit; with no token the bootstrap stops with instructions.
 # - When adding a new ubi: entry with a major pin, smoke-test `mise install`
 #   once to confirm the project's release tag format parses cleanly.
@@ -40,6 +41,7 @@ neovim = "stable"
 "ubi:astral-sh/uv"             = "latest"   # fast Python package manager
 "ubi:astral-sh/ruff"           = "latest"   # fast Python linter + formatter
 git-lfs = "latest"
+gh = "latest"                                 # GitHub CLI (see note above)
 zellij = "latest"
 
 # Modern coreutils replacements
