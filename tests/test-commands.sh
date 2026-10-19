@@ -92,7 +92,6 @@ check_version "python version" "python3 --version"
 # =============================================================================
 if [[ "$OS" == "linux" ]]; then
     log_info "Linux-specific tools..."
-    check_cmd "podman"
     check_cmd "flatpak"
     check_cmd "apt"
 

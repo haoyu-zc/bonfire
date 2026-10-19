@@ -122,18 +122,6 @@ check_symlink "nvim config" "$HOME/.config/nvim/init.lua"
 if [[ "$OS" == "linux" ]]; then
     log_info "Checking Linux-specific items..."
 
-    # Podman
-    if command_exists podman; then
-        check_pass "podman available"
-        if podman info &>/dev/null 2>&1; then
-            check_pass "podman info succeeds (rootless)"
-        else
-            check_warn "podman info failed"
-        fi
-    else
-        check_fail "podman not found"
-    fi
-
     # Flatpak
     if command_exists flatpak; then
         check_pass "flatpak available"
